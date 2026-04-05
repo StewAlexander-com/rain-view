@@ -77,12 +77,21 @@
         a.loop = true;
         a.preload = 'auto';
         a.volume = 0;
+        a.setAttribute('playsinline', '');
+        a.playsInline = true;
         this.audios[name] = a;
       }
 
       this.currentName = null;
       this.currentEl = null;
       this._volume = 1;
+    }
+
+    /** Append every track node to the document (required for reliable playback on iOS / Safari). */
+    appendElementsTo(parentEl) {
+      for (const el of Object.values(this.audios)) {
+        parentEl.appendChild(el);
+      }
     }
 
     /**
@@ -109,10 +118,20 @@
       incoming.currentTime = 0;
       incoming.volume = 0;
 
-      const playPromise = incoming.play();
-      if (playPromise) playPromise.catch(() => {});
+      const targetVol = this._volume;
+      const fadeInMs = this.fadeInMs;
+      const fadeIn = () => {
+        fadeVolumeTo(incoming, targetVol, fadeInMs);
+      };
 
-      fadeVolumeTo(incoming, this._volume, this.fadeInMs);
+      const playPromise = incoming.play();
+      if (playPromise !== undefined && typeof playPromise.then === 'function') {
+        playPromise.then(fadeIn).catch(() => {
+          incoming.volume = targetVol;
+        });
+      } else {
+        fadeIn();
+      }
     }
 
     /**

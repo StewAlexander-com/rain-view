@@ -44,19 +44,23 @@
     // Rain variant pills
     rainPills.addEventListener('click', e => {
       const pill = e.target.closest('.pill');
-      if (!pill) return;
+      if (!pill || !rainPills.contains(pill)) return;
+      const variant = pill.getAttribute('data-variant');
+      if (!variant) return;
       rainPills.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
       pill.classList.add('active');
-      audio.setRainVariant(pill.dataset.v);
+      audio.setRainVariant(variant);
     });
 
     // Piano variant pills
     pianoPills.addEventListener('click', e => {
       const pill = e.target.closest('.pill');
-      if (!pill) return;
+      if (!pill || !pianoPills.contains(pill)) return;
+      const variant = pill.getAttribute('data-variant');
+      if (!variant) return;
       pianoPills.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
       pill.classList.add('active');
-      audio.setPianoVariant(pill.dataset.v);
+      audio.setPianoVariant(variant);
     });
 
     // Auto-hide
@@ -107,7 +111,7 @@
 
   function setActivePill(container, value) {
     container.querySelectorAll('.pill').forEach(p => {
-      p.classList.toggle('active', p.dataset.v === value);
+      p.classList.toggle('active', p.getAttribute('data-variant') === value);
     });
   }
 

@@ -34,6 +34,18 @@
         },
         { fadeOutMs: 600, fadeInMs: 800 }
       );
+
+      let host = document.getElementById('rain-view-audio-host');
+      if (!host) {
+        host = document.createElement('div');
+        host.id = 'rain-view-audio-host';
+        host.setAttribute('aria-hidden', 'true');
+        host.style.cssText =
+          'position:fixed;width:0;height:0;overflow:hidden;clip:rect(0,0,0,0);border:0;pointer-events:none';
+        document.body.appendChild(host);
+      }
+      this.rainLayer.appendElementsTo(host);
+      this.pianoLayer.appendElementsTo(host);
     }
 
     start() {
