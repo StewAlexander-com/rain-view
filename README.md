@@ -86,7 +86,7 @@ rain-view/
 
 ### Audio (`audio-system.js`)
 
-- **`AmbientLoopLayer`** (internal) — One `<audio>` per variant, attached to a hidden host in the document. **Outgoing** track: volume 0 + pause immediately. **Incoming**: `play()` with a short retry, then either **instant** volume (rain layer) or **fade-in** via `requestAnimationFrame` (piano layer), gated by a generation counter.
+- **`AmbientLoopLayer`** (internal) — One `<audio>` per variant, attached to a hidden host in the document. Each file is **`fetch()`’d once** into a **blob URL** so the decoder loops from memory (avoids per-loop network range requests / rebuffering). **Outgoing** track: volume 0 + pause immediately. **Incoming**: wait for load readiness, then `play()` with a short retry, then either **instant** volume (rain) or **fade-in** (piano), gated by a generation counter.
 - **`AudioEngine`** — Two layers (rain + piano). `setVolume` bumps the generation and applies the level immediately. **User pause** skips auto-resume on tab visibility and keeps variant switches from auto-playing until the user hits play. **Per-track `error`** handler marks the node; **visibility** recovery tries `play()` again when returning from a background tab if the user had volume up and did not pause.
 
 ## Run locally

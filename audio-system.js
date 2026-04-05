@@ -14,7 +14,7 @@
    * Bump when any MP3 under assets/ is replaced. Browsers and CDNs cache
    * audio URLs by path; a query string forces a fresh fetch (same file name).
    */
-  var RV_AUDIO_ASSET_VER = '9';
+  var RV_AUDIO_ASSET_VER = '10';
 
   function withAssetVer(path) {
     var sep = path.indexOf('?') >= 0 ? '&' : '?';
@@ -32,6 +32,60 @@
 
   function easeOutQuad(t) {
     return 1 - (1 - t) * (1 - t);
+  }
+
+  /**
+   * Wait until the element has enough decoded data to play without stalling.
+   */
+  function waitUntilPlayable(el) {
+    return new Promise(function (resolve) {
+      if (el.readyState >= 4) {
+        resolve();
+        return;
+      }
+      var finished = function () {
+        el.removeEventListener('canplaythrough', finished);
+        el.removeEventListener('loadeddata', fallback);
+        resolve();
+      };
+      var fallback = function () {
+        el.removeEventListener('canplaythrough', finished);
+        el.removeEventListener('loadeddata', fallback);
+        resolve();
+      };
+      el.addEventListener('canplaythrough', finished, { once: true });
+      el.addEventListener('loadeddata', fallback, { once: true });
+    });
+  }
+
+  /**
+   * Fetch the entire MP3 into memory and assign a blob: URL so looping does not
+   * re-hit the network for range requests / rebuffer gaps.
+   * Falls back to the original URL if fetch fails (e.g. file:// dev without a server).
+   */
+  function fetchWholeFileIntoAudio(audioEl, url) {
+    return fetch(url, { credentials: 'same-origin' })
+      .then(function (res) {
+        if (!res.ok) throw new Error(String(res.status));
+        return res.blob();
+      })
+      .then(function (blob) {
+        if (audioEl._rvBlobUrl) {
+          try {
+            URL.revokeObjectURL(audioEl._rvBlobUrl);
+          } catch (e) {}
+        }
+        var objUrl = URL.createObjectURL(blob);
+        audioEl._rvBlobUrl = objUrl;
+        audioEl.src = objUrl;
+        audioEl.load();
+        return waitUntilPlayable(audioEl);
+      })
+      .catch(function () {
+        audioEl.src = url;
+        audioEl.load();
+        return waitUntilPlayable(audioEl);
+      });
   }
 
   /**
@@ -96,21 +150,24 @@
     /** User paused this layer; skip auto-play on variant change and visibility resume. */
     this._paused = false;
 
-    for (var name in nameToSrc) {
-      if (!Object.prototype.hasOwnProperty.call(nameToSrc, name)) continue;
-      var a = document.createElement('audio');
-      a.src = nameToSrc[name];
-      a.loop = true;
-      a.preload = 'auto';
-      a.volume = 0;
-      a.setAttribute('playsinline', '');
-      a.playsInline = true;
-      a.addEventListener('error', function () {
-        try {
-          a.setAttribute('data-rv-error', '1');
-        } catch (e) {}
-      });
-      this.audios[name] = a;
+    var self = this;
+    var keys = Object.keys(nameToSrc);
+    for (var i = 0; i < keys.length; i++) {
+      (function (name, url) {
+        var a = document.createElement('audio');
+        a.loop = true;
+        a.preload = 'auto';
+        a.volume = 0;
+        a.setAttribute('playsinline', '');
+        a.playsInline = true;
+        a.addEventListener('error', function () {
+          try {
+            a.setAttribute('data-rv-error', '1');
+          } catch (e) {}
+        });
+        a._rvLoad = fetchWholeFileIntoAudio(a, url);
+        self.audios[name] = a;
+      })(keys[i], nameToSrc[keys[i]]);
     }
   }
 
@@ -144,27 +201,36 @@
     var self = this;
     var targetVol = this._volume;
 
-    if (this._paused) {
-      incoming.volume = targetVol;
-      incoming.pause();
-      return;
-    }
-
-    safePlay(incoming).then(function (ok) {
+    function playAfterReady() {
       if (gen !== self._generation) return;
-      if (!ok) {
+      if (self._paused) {
         incoming.volume = targetVol;
+        incoming.pause();
         return;
       }
-      fadeInVolume(
-        incoming,
-        targetVol,
-        self.fadeInMs,
-        function () {
-          return gen === self._generation;
+      safePlay(incoming).then(function (ok) {
+        if (gen !== self._generation) return;
+        if (!ok) {
+          incoming.volume = targetVol;
+          return;
         }
-      );
-    });
+        fadeInVolume(
+          incoming,
+          targetVol,
+          self.fadeInMs,
+          function () {
+            return gen === self._generation;
+          }
+        );
+      });
+    }
+
+    var loadP = incoming._rvLoad;
+    if (loadP && typeof loadP.then === 'function') {
+      loadP.then(playAfterReady).catch(playAfterReady);
+    } else {
+      playAfterReady();
+    }
   };
 
   AmbientLoopLayer.prototype.setVolume = function (val) {
