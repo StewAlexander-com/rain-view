@@ -10,6 +10,26 @@
     return Math.max(0, Math.min(1, x));
   }
 
+  /**
+   * Bump when any MP3 under assets/ is replaced. Browsers and CDNs cache
+   * audio URLs by path; a query string forces a fresh fetch (same file name).
+   */
+  var RV_AUDIO_ASSET_VER = '4';
+
+  function withAssetVer(path) {
+    var sep = path.indexOf('?') >= 0 ? '&' : '?';
+    return path + sep + 'v=' + RV_AUDIO_ASSET_VER;
+  }
+
+  function mapSrcPaths(raw) {
+    var out = {};
+    for (var k in raw) {
+      if (!Object.prototype.hasOwnProperty.call(raw, k)) continue;
+      out[k] = withAssetVer(raw[k]);
+    }
+    return out;
+  }
+
   function easeOutQuad(t) {
     return 1 - (1 - t) * (1 - t);
   }
@@ -195,24 +215,24 @@
 
   AudioEngine.prototype.preload = function () {
     this.rainLayer = new AmbientLoopLayer(
-      {
+      mapSrcPaths({
         gentle: 'assets/rain-gentle.mp3',
         heavy: 'assets/rain-heavy.mp3',
         window: 'assets/rain-window.mp3',
         forest: 'assets/rain-forest.mp3',
         thunder: 'assets/rain-thunder.mp3'
-      },
+      }),
       { fadeInMs: 650 }
     );
 
     this.pianoLayer = new AmbientLoopLayer(
-      {
+      mapSrcPaths({
         contemplative: 'assets/piano-contemplative.mp3',
         jazz: 'assets/piano-jazz.mp3',
         melancholic: 'assets/piano-melancholic.mp3',
         ethereal: 'assets/piano-ethereal.mp3',
         pastoral: 'assets/piano-pastoral.mp3'
-      },
+      }),
       { fadeInMs: 650 }
     );
 
