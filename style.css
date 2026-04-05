@@ -1,6 +1,6 @@
 /* ========================================
-   Rain View — style.css
-   A contemplative ambient rain experience
+   Rain View v2 — style.css
+   A contemplative 3D ambient rain experience
    ======================================== */
 
 /* ---- Reset & Base ---- */
@@ -121,6 +121,18 @@ body {
   animation: fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1) 0.7s forwards;
 }
 
+.splash-hint {
+  font-family: 'Inter', 'Helvetica Neue', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 300;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(232, 232, 236, 0.3);
+  margin-top: 1.75rem;
+  opacity: 0;
+  animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 1.4s forwards;
+}
+
 @keyframes fadeInUp {
   to {
     opacity: 1;
@@ -233,11 +245,6 @@ body {
   pointer-events: none;
 }
 
-/* Glass blur for city window scenes */
-.scene-background.glass-effect img {
-  filter: blur(0.8px) brightness(0.85);
-}
-
 /* Vignette overlay */
 .scene-vignette {
   position: absolute;
@@ -251,12 +258,31 @@ body {
   pointer-events: none;
 }
 
-/* Rain canvas */
-#rain-canvas {
+/* Rain container (Three.js renderer goes here) */
+#rain-container {
   position: absolute;
   inset: 0;
   z-index: 2;
   pointer-events: none;
+}
+
+#rain-container canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Glass droplet overlay */
+#glass-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  display: none;
+}
+
+#glass-canvas.active {
+  display: block;
 }
 
 /* ---- Controls UI ---- */
@@ -266,11 +292,8 @@ body {
   left: 0;
   right: 0;
   z-index: 10;
-  padding: 1.5rem;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.35));
+  padding: 1.25rem 1.5rem 1.5rem;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.5));
   opacity: 1;
   pointer-events: auto;
   transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
@@ -281,17 +304,51 @@ body {
   pointer-events: none;
 }
 
+.controls-bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
 .controls-left {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  flex-shrink: 0;
 }
 
 .controls-right {
   display: flex;
-  flex-direction: column;
+  gap: 1rem;
   align-items: flex-end;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Audio section */
+.audio-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.6rem 0.85rem;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.section-row {
+  display: flex;
+  align-items: center;
   gap: 0.5rem;
+}
+
+.variant-row {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
 }
 
 /* Back button */
@@ -327,18 +384,6 @@ body {
 }
 
 /* Volume sliders */
-.slider-group {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.45rem 0.85rem;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
 .slider-icon {
   display: flex;
   align-items: center;
@@ -393,6 +438,35 @@ input[type="range"]::-moz-range-thumb {
   cursor: pointer;
 }
 
+/* Variant buttons */
+.variant-btn {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+  line-height: 1.4;
+}
+
+.variant-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.65);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.variant-btn.active {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: rgba(255, 255, 255, 0.85);
+}
+
 /* Scene name label */
 .scene-label {
   font-family: 'Cormorant Garamond', 'Georgia', serif;
@@ -432,24 +506,58 @@ input[type="range"]::-moz-range-thumb {
   }
 
   .controls {
-    padding: 1rem;
+    padding: 0.75rem 1rem 1rem;
+  }
+
+  .controls-bar {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.75rem;
   }
 
+  .controls-left {
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+    gap: 1rem;
+  }
+
   .controls-right {
-    align-items: flex-start;
+    flex-direction: column;
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .audio-section {
     width: 100%;
   }
 
-  .slider-group {
+  .section-row {
     width: 100%;
   }
 
   input[type="range"] {
     flex: 1;
     width: auto;
+  }
+
+  .variant-row {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+  }
+
+  .variant-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .variant-btn {
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+    padding: 6px 12px;
   }
 }
 
@@ -470,35 +578,4 @@ input[type="range"]::-moz-range-thumb {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-}
-
-/* Loading state */
-.loading-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 200;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #0a0a0c;
-  transition: opacity 0.6s ease;
-}
-
-.loading-overlay.hidden {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.loading-text {
-  font-family: 'Cormorant Garamond', 'Georgia', serif;
-  font-size: 1.2rem;
-  font-weight: 300;
-  letter-spacing: 0.1em;
-  color: rgba(232, 232, 236, 0.4);
-  animation: pulse 2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.8; }
 }
