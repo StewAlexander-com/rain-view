@@ -53,14 +53,15 @@ Each scene loads a looping MP4 (`assets/scene-*.mp4`) with a vignette overlay. C
 
 ## Architecture
 
-`index.html` loads **`audio-engine.js`** then **`app.js`** as plain scripts (no bundler, no ES module graph).
+`index.html` loads **`audio-crossfade.js`**, **`audio-engine.js`**, then **`app.js`** as plain scripts (no bundler, no ES module graph).
 
 ```
 rain-view/
 ├── index.html          # Splash + scene shell, control panel, script tags
 ├── style.css           # Layout, glass UI, responsive rules
 ├── app.js              # SCENES map, enter/exit, pills, auto-hide, Escape
-├── audio-engine.js     # Rain + piano MP3 preload and crossfade
+├── audio-crossfade.js  # LoopCrossfadeLayer: cancelable crossfades per <audio>
+├── audio-engine.js     # Wires two layers (rain + piano) for app.js
 ├── AUDIO-CREDITS.txt   # Piano track titles and CC BY attribution
 ├── manifest.json
 ├── screenshots/        # Images for this README (GitHub rendering)
@@ -73,10 +74,10 @@ rain-view/
 └── icons/              # PWA / favicon / OG assets
 ```
 
-### Audio engine (`audio-engine.js`)
+### Audio (`audio-crossfade.js` + `audio-engine.js`)
 
-- **Rain** — Five `<audio>` elements, `loop` + `preload`, created in `preload()`. `setRainVariant` fades out the current track then fades in the new one.
-- **Piano** — Five more `<audio>` elements (`assets/piano-*.mp3`), same crossfade behavior via `setPianoVariant`. `start()` marks the engine ready after a user gesture; playback is still driven by HTML5 audio (no Web Audio synthesis for piano).
+- **`LoopCrossfadeLayer`** — Holds one `<audio>` per variant (loop + preload). Switching variants fades the outgoing track out and the incoming track in. **Each element can only have one active fade**; starting a new fade cancels the previous timer on that element so overlapping `setInterval` ramps cannot fight (which caused brief sound or silence).
+- **`AudioEngine`** — Two layers (rain + piano). Volume changes cancel the current track’s fade and apply immediately so the sliders stay authoritative. `stopAll()` cancels fades on every element in both layers.
 
 ## Run locally
 
