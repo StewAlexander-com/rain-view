@@ -1,0 +1,23 @@
+Rain View — piano music credits
+================================
+
+All piano tracks below are by Kevin MacLeod (incompetech.com), licensed under
+Creative Commons Attribution 4.0 International (CC BY 4.0).
+https://creativecommons.org/licenses/by/4.0/
+
+License page (Incompetech): https://incompetech.com/music/royalty-free/licenses/
+
+Scene / UI variant   File                         Incompetech title
+--------------------   --------------------------   -----------------
+Contemplative          piano-contemplative.mp3      Comfortable Mystery 3
+Jazz                   piano-jazz.mp3               Jazz Brunch
+Melancholic            piano-melancholic.mp3        Sad Trio
+Ethereal               piano-ethereal.mp3           Floating Cities
+Pastoral               piano-pastoral.mp3           Carefree
+
+Required attribution (example):
+"Carefree" Kevin MacLeod (incompetech.com)
+Licensed under Creative Commons: By Attribution 4.0 License
+http://creativecommons.org/licenses/by/4.0/
+
+Rain soundscapes (assets/rain-*.mp3) are documented separately in the README if applicable.
