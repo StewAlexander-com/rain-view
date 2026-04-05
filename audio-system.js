@@ -14,7 +14,7 @@
    * Bump when any MP3 under assets/ is replaced. Browsers and CDNs cache
    * audio URLs by path; a query string forces a fresh fetch (same file name).
    */
-  var RV_AUDIO_ASSET_VER = '5';
+  var RV_AUDIO_ASSET_VER = '6';
 
   function withAssetVer(path) {
     var sep = path.indexOf('?') >= 0 ? '&' : '?';
@@ -93,6 +93,8 @@
     this.currentName = null;
     this.currentEl = null;
     this._volume = 1;
+    /** User paused this layer; skip auto-play on variant change and visibility resume. */
+    this._paused = false;
 
     for (var name in nameToSrc) {
       if (!Object.prototype.hasOwnProperty.call(nameToSrc, name)) continue;
@@ -142,6 +144,12 @@
     var self = this;
     var targetVol = this._volume;
 
+    if (this._paused) {
+      incoming.volume = targetVol;
+      incoming.pause();
+      return;
+    }
+
     safePlay(incoming).then(function (ok) {
       if (gen !== self._generation) return;
       if (!ok) {
@@ -167,8 +175,40 @@
     }
   };
 
+  AmbientLoopLayer.prototype.isPaused = function () {
+    return !!this._paused;
+  };
+
+  AmbientLoopLayer.prototype.setPaused = function (paused) {
+    paused = !!paused;
+    if (!this.currentEl) return;
+    if (paused === this._paused) return;
+    this._paused = paused;
+    this._generation++;
+    var el = this.currentEl;
+    if (paused) {
+      el.pause();
+      el.volume = this._volume;
+    } else {
+      var self = this;
+      var gen = this._generation;
+      safePlay(el).then(function (ok) {
+        if (gen !== self._generation || !self.currentEl || el !== self.currentEl) return;
+        if (!ok) return;
+        el.volume = self._volume;
+      });
+    }
+  };
+
+  AmbientLoopLayer.prototype.togglePause = function () {
+    if (!this.currentEl) return null;
+    this.setPaused(!this._paused);
+    return this._paused;
+  };
+
   AmbientLoopLayer.prototype.stopAll = function () {
     this._generation++;
+    this._paused = false;
     for (var k in this.audios) {
       if (!Object.prototype.hasOwnProperty.call(this.audios, k)) continue;
       var el = this.audios[k];
@@ -181,6 +221,7 @@
 
   /** After tab sleep / mobile background, resume if user expects sound. */
   AmbientLoopLayer.prototype.recoverIfNeeded = function () {
+    if (this._paused) return;
     if (this._volume < 0.001) return;
     var el = this.currentEl;
     if (!el || el.error) return;
@@ -277,6 +318,24 @@
   AudioEngine.prototype.stopAll = function () {
     if (this.rainLayer) this.rainLayer.stopAll();
     if (this.pianoLayer) this.pianoLayer.stopAll();
+  };
+
+  AudioEngine.prototype.isRainPaused = function () {
+    return this.rainLayer ? this.rainLayer.isPaused() : false;
+  };
+
+  AudioEngine.prototype.isPianoPaused = function () {
+    return this.pianoLayer ? this.pianoLayer.isPaused() : false;
+  };
+
+  AudioEngine.prototype.toggleRainPause = function () {
+    if (!this.rainLayer) return null;
+    return this.rainLayer.togglePause();
+  };
+
+  AudioEngine.prototype.togglePianoPause = function () {
+    if (!this.pianoLayer) return null;
+    return this.pianoLayer.togglePause();
   };
 
   global.AudioEngine = AudioEngine;

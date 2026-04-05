@@ -46,6 +46,7 @@ Each scene loads a looping MP4 (`assets/scene-*.mp4`) with a vignette overlay. C
 - **Five rain soundscapes** — Gentle, Heavy, Window, Forest, and Thunder (`assets/rain-*.mp3`). Switching variants stops the previous loop immediately and fades in the new one (~650 ms, `requestAnimationFrame`).
 - **Five piano loops** — Real recorded tracks (`assets/piano-*.mp3`): Contemplative, Jazz, Melancholic, Ethereal, Pastoral. Same behavior as rain. Entering a scene starts rain at volume **0.7** and piano at **0** until you raise the piano slider (`app.js`). Attribution: see `AUDIO-CREDITS.txt` (CC BY 4.0, Kevin MacLeod / incompetech.com).
 - **Independent volume** — Separate sliders for rain and piano.
+- **Play / pause** — Each row has a button that pauses that layer (icon switches to play) and resumes from the same position in the loop (`audio-system.js` + `app.js`).
 - **Auto-hiding controls** — Control panel hides after **4 seconds** of inactivity; mouse move or touch shows it again (`app.js`).
 - **PWA-ready** — `manifest.json`, icons under `icons/`, mobile meta tags.
 - **Mobile responsive** — Touch-friendly layout and pill controls; see `style.css` for `prefers-reduced-motion` handling.
@@ -53,7 +54,16 @@ Each scene loads a looping MP4 (`assets/scene-*.mp4`) with a vignette overlay. C
 
 ## Architecture
 
-`index.html` loads **`audio-system.js`** then **`app.js`** with a **`?v=`** query on each script so updates are not stuck behind disk cache. Bump those when you change audio logic.
+`index.html` loads **`audio-system.js`** then **`app.js`** with a **`?v=`** query on each script so updates are not stuck behind disk cache.
+
+### Caching / releases (do this whenever you ship audio changes)
+
+Browsers cache JS and MP3s aggressively. After changing assets or audio code:
+
+1. Bump **`RV_AUDIO_ASSET_VER`** in `audio-system.js` (forces new `…mp3?v=…` URLs).
+2. Bump the **`?v=`** on **both** `<script>` tags in `index.html` (forces new `audio-system.js` / `app.js`; otherwise old JS may never load the new query strings).
+
+When testing in Chrome DevTools, enable **Disable cache** on the Network tab so you are not fooled by disk cache.
 
 ```
 rain-view/
@@ -76,7 +86,7 @@ rain-view/
 ### Audio (`audio-system.js`)
 
 - **`AmbientLoopLayer`** (internal) — One `<audio>` per variant, attached to a hidden host in the document. **Outgoing** track: volume 0 + pause immediately (no overlapping fade-out timers). **Incoming**: `play()` with a short retry, then **fade-in only** via `requestAnimationFrame`, gated by a generation counter so rapid switches or slider moves do not leave stale state.
-- **`AudioEngine`** — Two layers (rain + piano). `setVolume` bumps the generation and applies the level immediately. **Per-track `error`** handler marks the node; **visibility** recovery tries `play()` again when returning from a background tab if the user had volume up.
+- **`AudioEngine`** — Two layers (rain + piano). `setVolume` bumps the generation and applies the level immediately. **User pause** skips auto-resume on tab visibility and keeps variant switches from auto-playing until the user hits play. **Per-track `error`** handler marks the node; **visibility** recovery tries `play()` again when returning from a background tab if the user had volume up and did not pause.
 
 ## Run locally
 

@@ -64,6 +64,12 @@ body{min-height:100dvh;width:100vw;overflow:hidden;font-family:var(--font-body);
 .pill.active{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.22);color:rgba(255,255,255,.88)}
 
 .vol-row{display:flex;align-items:center;gap:.5rem}
+.btn-playpause{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;border:none;border-radius:8px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.72);cursor:pointer;transition:background .2s,color .2s}
+.btn-playpause:hover{background:rgba(255,255,255,.14);color:rgba(255,255,255,.95)}
+.btn-playpause .pp-icon{display:block}
+.btn-playpause .pp-play{display:none}
+.btn-playpause.is-paused .pp-pause{display:none}
+.btn-playpause.is-paused .pp-play{display:block}
 .vol-icon{width:14px;height:14px;color:rgba(232,232,236,.4);flex-shrink:0}
 input[type="range"]{-webkit-appearance:none;appearance:none;flex:1;height:3px;background:rgba(255,255,255,.12);border-radius:999px;outline:none;cursor:pointer}
 input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:rgba(232,232,236,.85);border:none;box-shadow:0 1px 6px rgba(0,0,0,.3)}

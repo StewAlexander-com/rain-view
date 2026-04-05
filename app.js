@@ -20,6 +20,8 @@
   const pianoVol  = document.getElementById('piano-vol');
   const rainPills = document.getElementById('rain-pills');
   const pianoPills = document.getElementById('piano-pills');
+  const rainPlayPause = document.getElementById('rain-playpause');
+  const pianoPlayPause = document.getElementById('piano-playpause');
 
   let audio = null;
   let current = null;
@@ -63,6 +65,17 @@
       audio.setPianoVariant(variant);
     });
 
+    rainPlayPause.addEventListener('click', e => {
+      e.stopPropagation();
+      audio.toggleRainPause();
+      syncPlayPauseUi();
+    });
+    pianoPlayPause.addEventListener('click', e => {
+      e.stopPropagation();
+      audio.togglePianoPause();
+      syncPlayPauseUi();
+    });
+
     // Auto-hide
     setupAutoHide();
 
@@ -97,7 +110,19 @@
     audio.setRainVariant(s.defaultRain);
     audio.setPianoVariant(s.defaultPiano);
 
+    syncPlayPauseUi();
     showCtrl();
+  }
+
+  function syncPlayPauseUi() {
+    const rPaused = audio.isRainPaused();
+    const pPaused = audio.isPianoPaused();
+    rainPlayPause.classList.toggle('is-paused', rPaused);
+    pianoPlayPause.classList.toggle('is-paused', pPaused);
+    rainPlayPause.setAttribute('aria-label', rPaused ? 'Play rain' : 'Pause rain');
+    rainPlayPause.setAttribute('title', rPaused ? 'Play' : 'Pause');
+    pianoPlayPause.setAttribute('aria-label', pPaused ? 'Play piano' : 'Pause piano');
+    pianoPlayPause.setAttribute('title', pPaused ? 'Play' : 'Pause');
   }
 
   function exitScene() {
