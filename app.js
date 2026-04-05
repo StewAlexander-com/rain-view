@@ -1,33 +1,41 @@
 /* ═══════════════════════════════════════════
-   APP.JS — Main Controller for Rain View v3
+   APP.JS — Main Controller for Rain View v4
    ═══════════════════════════════════════════ */
 
 (function() {
   'use strict';
 
-  // ── Scene Metadata ──
+  // ── Scene Metadata (v4: bg + frame layers) ──
   const SCENES = {
     'asian-city': {
       title: 'Tokyo Evening',
-      image: 'assets/scene-asian-city.jpg',
+      bg: 'assets/bg-tokyo.jpg',
+      frame: 'assets/frame-asian-city.webp',
+      thumb: 'assets/scene-asian-city.jpg',
       defaultRain: 'window',
       defaultPiano: 'contemplative'
     },
     'ny-city': {
       title: 'New York Night',
-      image: 'assets/scene-ny-city.jpg',
+      bg: 'assets/bg-nyc.jpg',
+      frame: 'assets/frame-ny-city.webp',
+      thumb: 'assets/scene-ny-city.jpg',
       defaultRain: 'heavy',
       defaultPiano: 'jazz'
     },
     'autumn-cabin': {
       title: 'Autumn Forest',
-      image: 'assets/scene-autumn-cabin.jpg',
+      bg: 'assets/bg-autumn.jpg',
+      frame: 'assets/frame-autumn-cabin.webp',
+      thumb: 'assets/scene-autumn-cabin.jpg',
       defaultRain: 'forest',
       defaultPiano: 'melancholic'
     },
     'japanese-garden': {
       title: 'Zen Garden',
-      image: 'assets/scene-japanese-garden.jpg',
+      bg: 'assets/bg-garden.jpg',
+      frame: 'assets/frame-japanese-garden.webp',
+      thumb: 'assets/scene-japanese-garden.jpg',
       defaultRain: 'gentle',
       defaultPiano: 'ethereal'
     }
@@ -47,7 +55,8 @@
   // ── DOM References ──
   const splash = document.getElementById('splash');
   const sceneView = document.getElementById('scene-view');
-  const sceneImg = document.getElementById('scene-img');
+  const sceneBg = document.getElementById('scene-bg');
+  const sceneFrame = document.getElementById('scene-frame');
   const sceneTitle = document.getElementById('scene-title');
   const controls = document.getElementById('controls');
   const btnBack = document.getElementById('btn-back');
@@ -71,9 +80,11 @@
     // Start audio system on first interaction
     audioEngine.start();
 
-    // Set background image
-    sceneImg.src = scene.image;
-    sceneImg.alt = scene.title;
+    // Set layer images (bg photograph + foreground frame)
+    sceneBg.src = scene.bg;
+    sceneBg.alt = scene.title;
+    sceneFrame.src = scene.frame;
+    sceneFrame.alt = '';
     sceneTitle.textContent = scene.title;
 
     // Transition: hide splash, show scene
@@ -191,7 +202,7 @@
   sceneView.addEventListener('touchstart', onActivity, { passive: true });
   sceneView.addEventListener('click', (e) => {
     // If clicking on the scene area (not controls), toggle controls
-    if (e.target === sceneView || e.target === sceneImg || e.target.id === 'rain-canvas') {
+    if (e.target === sceneView || e.target.closest('.scene-bg-layer') || e.target.id === 'rain-canvas' || e.target.closest('.scene-frame-layer') || e.target.closest('.scene-vignette')) {
       if (controlsVisible) {
         hideControls();
         clearControlsTimer();

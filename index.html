@@ -63,15 +63,23 @@
   <!-- ═══════════ MAIN SCENE VIEW ═══════════ -->
   <div id="scene-view" class="scene-view hidden">
 
-    <!-- Background image -->
-    <div id="scene-bg" class="scene-bg">
-      <img id="scene-img" src="" alt="" class="scene-bg-img">
+    <!-- Layer 1: Background photograph -->
+    <div class="scene-layer scene-bg-layer">
+      <img id="scene-bg" src="" alt="">
     </div>
 
-    <!-- Rain canvas overlay (transparent, on top of image) -->
-    <canvas id="rain-canvas"></canvas>
+    <!-- Layer 2: Rain canvas (between bg and frame) -->
+    <canvas id="rain-canvas" class="scene-layer"></canvas>
 
-    <!-- Controls overlay (auto-hides) -->
+    <!-- Layer 3: Foreground frame overlay -->
+    <div class="scene-layer scene-frame-layer">
+      <img id="scene-frame" src="" alt="">
+    </div>
+
+    <!-- Layer 4: Vignette -->
+    <div class="scene-layer scene-vignette"></div>
+
+    <!-- Layer 5: UI controls (above everything) -->
     <div id="controls" class="controls">
 
       <!-- Top bar: back + scene title -->
