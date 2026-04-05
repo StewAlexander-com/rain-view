@@ -4,7 +4,7 @@
 
 An ambient rain simulator with four cinematic looping scenes, five rain soundscapes, and a generative piano engine. Built with vanilla HTML, CSS, and JavaScript. No frameworks, no build tools.
 
-This **`README.md` at the root of [StewAlexander-com/rain-view](https://github.com/StewAlexander-com/rain-view)** is the canonical project documentation. Edit this file in the repository (not a duplicate elsewhere) so GitHub and clones stay in sync.
+Project documentation for **[StewAlexander-com/rain-view](https://github.com/StewAlexander-com/rain-view)** lives in this `README.md` at the repository root.
 
 [**Live demo**](https://stewalexander-com.github.io/rain-view/)
 
@@ -30,6 +30,8 @@ This **`README.md` at the root of [StewAlexander-com/rain-view](https://github.c
 
 ## Scenes
 
+Defaults match `app.js` (`SCENES`):
+
 | Scene | Setting | Default pairing |
 |-------|---------|-----------------|
 | **Tokyo Evening** | Neon-lit streets through rain-kissed glass | Window rain, Contemplative piano |
@@ -37,50 +39,48 @@ This **`README.md` at the root of [StewAlexander-com/rain-view](https://github.c
 | **Autumn Forest** | Fall foliage and mountain mist | Forest rain, Melancholic piano |
 | **Zen Garden** | Cherry blossoms and rain on still water | Gentle rain, Ethereal piano |
 
-Each scene loads a looping MP4 video background with a cinematic vignette overlay. Selecting a scene automatically sets its curated rain and piano defaults, though both can be changed freely.
+Each scene loads a looping MP4 (`assets/scene-*.mp4`) with a vignette overlay. Choosing a scene applies its default rain and piano variants; both can be changed with the pill selectors.
 
 ## Features
 
-- **Five rain soundscapes** — Gentle, Heavy, Window, Forest, and Thunder. Each is a dedicated audio track with crossfade transitions between variants.
-- **Generative piano** — Real-time synthesis via the Web Audio API. Five distinct voicings (Contemplative, Jazz, Melancholic, Ethereal, Pastoral), each with its own note set, tempo, chord probability, and convolution reverb.
-- **Independent volume control** — Separate sliders for rain and piano allow any mix from rain-only ambience to a piano-forward session.
-- **Auto-hiding controls** — Glassmorphism control panel fades out after four seconds of inactivity and reappears on mouse movement or touch.
-- **PWA-ready** — Web app manifest, full icon set, and mobile meta tags for home-screen installation on iOS and Android.
-- **Mobile responsive** — Single-column layout and horizontally scrollable pill selectors on small screens. Touch-optimized with `prefers-reduced-motion` support.
-- **Keyboard navigation** — Press **Escape** to return to the splash screen from any scene.
+- **Five rain soundscapes** — Gentle, Heavy, Window, Forest, and Thunder (`assets/rain-*.mp3`). Switching variants crossfades: previous track fades out (~600 ms), new track fades in (~800 ms), ease-in-out stepped ramp (`audio-engine.js`).
+- **Generative piano** — Web Audio API synthesis (`audio-engine.js`). Five voicings (Contemplative, Jazz, Melancholic, Ethereal, Pastoral), each with its own note table, tempo, velocity/sustain ranges, rest/chord probability, and reverb decay. Entering a scene starts rain at volume **0.7** and piano at **0** until you raise the piano slider (`app.js`).
+- **Independent volume** — Separate sliders for rain and piano.
+- **Auto-hiding controls** — Control panel hides after **4 seconds** of inactivity; mouse move or touch shows it again (`app.js`).
+- **PWA-ready** — `manifest.json`, icons under `icons/`, mobile meta tags.
+- **Mobile responsive** — Touch-friendly layout and pill controls; see `style.css` for `prefers-reduced-motion` handling.
+- **Keyboard** — **Escape** returns to the splash screen when a scene is active (`app.js`).
 
 ## Architecture
 
+`index.html` loads **`audio-engine.js`** then **`app.js`** as plain scripts (no bundler, no ES module graph).
+
 ```
 rain-view/
-├── index.html          # Splash screen + scene viewer markup
-├── style.css           # All styles (glassmorphism, animations, responsive)
-├── app.js              # Scene management, UI state, auto-hide logic
-├── audio-engine.js     # Rain playback + procedural piano synthesis
-├── manifest.json       # PWA manifest
-├── screenshots/        # README images (splash + scene thumbnails)
+├── index.html          # Splash + scene shell, control panel, script tags
+├── style.css           # Layout, glass UI, responsive rules
+├── app.js              # SCENES map, enter/exit, pills, auto-hide, Escape
+├── audio-engine.js     # Rain MP3 preload + crossfade; procedural piano + reverb
+├── manifest.json
+├── screenshots/        # Images for this README (GitHub rendering)
 ├── assets/
-│   ├── scene-*.mp4     # Looping video backgrounds (4 scenes)
-│   ├── rain-*.mp3      # Rain audio variants (5 tracks)
-│   ├── thumb-*.jpg     # Scene card thumbnails
+│   ├── scene-*.mp4     # Four looping videos
+│   ├── rain-*.mp3      # Five rain tracks
+│   ├── thumb-*.jpg     # Splash card thumbnails
 │   └── splash-rain-window.jpg
-└── icons/              # Favicons, touch icons, OG image
+└── icons/              # PWA / favicon / OG assets
 ```
 
-### Audio engine
+### Audio engine (`audio-engine.js`)
 
-The audio engine (`audio-engine.js`) has two independent layers:
-
-- **Rain** — HTML `<audio>` elements loaded from MP3 files. Variants crossfade with an eased volume ramp over 800 ms. All five tracks are preloaded on page init.
-- **Piano** — A Web Audio API synthesizer. Each note is a detuned oscillator pair (triangle + sine) routed through a biquad lowpass filter, an ADSR-style gain envelope, and a generated convolution reverb. Note selection, velocity, sustain, rest probability, and chord voicing are driven by per-variant configuration objects.
+- **Rain** — Five `<audio>` elements, `loop` + `preload`, created in `preload()`. `setRainVariant` fades out the current track then fades in the new one.
+- **Piano** — `AudioContext` after `start()` (user gesture). Notes use a detuned **triangle + sine** pair, biquad **lowpass**, ADSR-style gain envelope, optional chord tones, and a **convolver** with a generated impulse response plus wet/dry mix to `destination`.
 
 ## Run locally
 
-1. **Get the project**
-   - Clone: `git clone https://github.com/StewAlexander-com/rain-view.git`
-   - Or download the repository as a ZIP from GitHub and extract it.
+1. **Get the project** — `git clone https://github.com/StewAlexander-com/rain-view.git` or download the ZIP from GitHub.
 
-2. **Serve over HTTP** (do not open `index.html` directly as `file://` — ES modules and audio policies expect a real origin).
+2. **Serve over HTTP** — Do not rely on `file://` for normal use; use a static server so media and script behavior match a deployed site.
 
 ```bash
 cd rain-view
@@ -90,21 +90,21 @@ npx serve .
 python3 -m http.server 8000
 ```
 
-3. Open `http://localhost:3000` or `http://localhost:8000` in your browser. **Audio requires a user gesture** (e.g. choosing a scene) before playback, per browser autoplay rules.
+3. Open `http://localhost:3000` or `http://localhost:8000`. **AudioContext** and rain playback expect a **user gesture** (e.g. clicking a scene card).
 
 ### Network requirements for a local build
 
-- **Localhost is enough** for app code and bundled assets (HTML, CSS, JS, MP4, MP3, images).
-- **Internet access** is still needed on first load if you use the stock `index.html`, because **Google Fonts** are loaded from `fonts.googleapis.com` / `fonts.gstatic.com`. Without network, fonts fall back to system fonts; the app still runs.
-- **No npm install** is required unless you choose a dev server like `npx serve`.
+- **Same-origin assets** (HTML, CSS, JS, MP4, MP3, images) are all local under the repo.
+- **Google Fonts** load from `fonts.googleapis.com` / `fonts.gstatic.com` on first load; offline, the UI still runs with fallback fonts.
+- **No `npm install`** is required unless you use a tool like `npx serve`.
 
 ## Credits
 
-- **Rain audio** — MP3 recordings included in `assets/`.
-- **Scene videos** — Looping video clips included in `assets/`.
-- **Piano** — Procedurally generated at runtime with the Web Audio API (no piano samples).
+- **Rain audio** — MP3 files in `assets/`.
+- **Scene videos** — MP4 files in `assets/`.
+- **Piano** — Synthesized in the browser; no sampled piano audio.
 - **Fonts** — [Cormorant Garamond](https://fonts.google.com/specimen/Cormorant+Garamond) and [Inter](https://fonts.google.com/specimen/Inter) via Google Fonts.
 
 ## License
 
-MIT — see [LICENSE](https://github.com/StewAlexander-com/rain-view/blob/main/LICENSE) in the repository.
+MIT — see [LICENSE](https://github.com/StewAlexander-com/rain-view/blob/main/LICENSE).
