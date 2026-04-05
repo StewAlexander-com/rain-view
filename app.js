@@ -2,6 +2,10 @@
 (function () {
   'use strict';
 
+  /** iOS WebKit ignores programmatic media.volume; sliders are hidden — fixed mix in enterScene. */
+  const IOS_RAIN_VOL = 0.7;
+  const IOS_PIANO_VS_RAIN = 0.33;
+
   const SCENES = {
     tokyo:  { title: 'Tokyo Evening',   video: 'assets/scene-tokyo.mp4',  thumb: 'assets/thumb-tokyo.jpg',  defaultRain: 'window',  defaultPiano: 'contemplative' },
     nyc:    { title: 'New York Night',   video: 'assets/scene-nyc.mp4',    thumb: 'assets/thumb-nyc.jpg',    defaultRain: 'heavy',   defaultPiano: 'jazz' },
@@ -27,9 +31,20 @@
   let current = null;
   let idleTimer = null;
 
+  function isIOSAudioUi() {
+    return typeof RainViewMobile !== 'undefined' && typeof RainViewMobile.isIOSLike === 'function' && RainViewMobile.isIOSLike();
+  }
+
   function init() {
     audio = new AudioEngine();
     audio.preload();
+    if (typeof RainViewMobile !== 'undefined' && RainViewMobile.configureRainViewMobileAudio) {
+      RainViewMobile.configureRainViewMobileAudio(audio);
+    }
+
+    if (isIOSAudioUi()) {
+      document.documentElement.classList.add('rv-ios-volume');
+    }
 
     // Scene cards
     document.querySelectorAll('.card').forEach(c => {
@@ -39,9 +54,16 @@
     // Back
     backBtn.addEventListener('click', exitScene);
 
-    // Volume
-    rainVol.addEventListener('input', e => audio.setRainVolume(+e.target.value));
-    pianoVol.addEventListener('input', e => audio.setPianoVolume(+e.target.value));
+    // Volume sliders (desktop / non‑iOS). iOS WebKit: hidden + fixed mix — see enterScene.
+    if (!isIOSAudioUi()) {
+      function bindVolumeRange(el, setFn) {
+        const apply = e => setFn(+e.target.value);
+        el.addEventListener('input', apply);
+        el.addEventListener('change', apply);
+      }
+      bindVolumeRange(rainVol, v => audio.setRainVolume(v));
+      bindVolumeRange(pianoVol, v => audio.setPianoVolume(v));
+    }
 
     // Rain variant pills
     rainPills.addEventListener('click', e => {
@@ -96,17 +118,20 @@
     // Set default variants
     setActivePill(rainPills, s.defaultRain);
     setActivePill(pianoPills, s.defaultPiano);
-    rainVol.value = 0.7;
-    pianoVol.value = 0;
+
+    const rainLevel = isIOSAudioUi() ? IOS_RAIN_VOL : 0.7;
+    const pianoLevel = isIOSAudioUi() ? IOS_RAIN_VOL * IOS_PIANO_VS_RAIN : 0;
+    rainVol.value = String(rainLevel);
+    pianoVol.value = String(pianoLevel);
 
     // Transition
     splash.classList.add('hidden');
     sceneEl.classList.remove('hidden');
 
-    // Audio
+    // Audio — set levels before start() so ensureWebAudio() picks up correct _volume (not default 1).
+    audio.setRainVolume(rainLevel);
+    audio.setPianoVolume(pianoLevel);
     audio.start();
-    audio.setRainVolume(0.7);
-    audio.setPianoVolume(0);
     audio.setRainVariant(s.defaultRain);
     audio.setPianoVariant(s.defaultPiano);
 

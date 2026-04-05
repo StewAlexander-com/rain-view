@@ -71,6 +71,10 @@ body{min-height:100dvh;width:100vw;overflow:hidden;font-family:var(--font-body);
 .btn-playpause.is-paused .pp-pause{display:none}
 .btn-playpause.is-paused .pp-play{display:block}
 .vol-icon{width:14px;height:14px;color:rgba(232,232,236,.4);flex-shrink:0}
+/* iOS WebKit: HTMLMediaElement.volume is ineffective; app.js hides sliders and uses a fixed mix. */
+.rv-ios-volume .vol-row .vol-icon,
+.rv-ios-volume .vol-row input[type="range"]{display:none!important}
+.rv-ios-volume .vol-row{gap:.35rem}
 input[type="range"]{-webkit-appearance:none;appearance:none;flex:1;height:3px;background:rgba(255,255,255,.12);border-radius:999px;outline:none;cursor:pointer}
 input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:rgba(232,232,236,.85);border:none;box-shadow:0 1px 6px rgba(0,0,0,.3)}
 input[type="range"]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:rgba(232,232,236,.85);border:none;cursor:pointer}
