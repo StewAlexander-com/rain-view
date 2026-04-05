@@ -1,212 +1,210 @@
-/**
- * Rain View v2 — Main App Controller
- * Scene management, UI wiring, transitions
- */
-import { RainEngine } from './rain-engine.js';
-import { AudioEngine } from './audio-engine.js';
+/* ═══════════════════════════════════════════
+   APP.JS — Main Controller for Rain View v3
+   ═══════════════════════════════════════════ */
 
-// ---- Scene metadata ----
-const SCENES = {
-  'asian-city': {
-    label: 'Tokyo Evening',
-    image: 'assets/scene-asian-city.jpg'
-  },
-  'ny-city': {
-    label: 'New York Night',
-    image: 'assets/scene-ny-city.jpg'
-  },
-  'autumn-cabin': {
-    label: 'Autumn Forest',
-    image: 'assets/scene-autumn-cabin.jpg'
-  },
-  'japanese-garden': {
-    label: 'Zen Garden',
-    image: 'assets/scene-japanese-garden.jpg'
-  }
-};
+(function() {
+  'use strict';
 
-class App {
-  constructor() {
-    this.rainEngine = new RainEngine();
-    this.audioEngine = new AudioEngine();
-    this.currentScene = null;
-    this.controlsTimer = null;
-    this.controlsVisible = true;
+  // ── Scene Metadata ──
+  const SCENES = {
+    'asian-city': {
+      title: 'Tokyo Evening',
+      image: 'assets/scene-asian-city.jpg',
+      defaultRain: 'window',
+      defaultPiano: 'contemplative'
+    },
+    'ny-city': {
+      title: 'New York Night',
+      image: 'assets/scene-ny-city.jpg',
+      defaultRain: 'heavy',
+      defaultPiano: 'jazz'
+    },
+    'autumn-cabin': {
+      title: 'Autumn Forest',
+      image: 'assets/scene-autumn-cabin.jpg',
+      defaultRain: 'forest',
+      defaultPiano: 'melancholic'
+    },
+    'japanese-garden': {
+      title: 'Zen Garden',
+      image: 'assets/scene-japanese-garden.jpg',
+      defaultRain: 'gentle',
+      defaultPiano: 'ethereal'
+    }
+  };
 
-    // DOM refs
-    this.splash = document.getElementById('splash');
-    this.sceneView = document.getElementById('scene-view');
-    this.sceneImage = document.getElementById('scene-image');
-    this.sceneLabel = document.getElementById('scene-label');
-    this.controls = document.getElementById('controls');
-    this.rainContainer = document.getElementById('rain-container');
-    this.glassCanvas = document.getElementById('glass-canvas');
-    this.btnBack = document.getElementById('btn-back');
-    this.rainVolumeSlider = document.getElementById('rain-volume');
-    this.pianoVolumeSlider = document.getElementById('piano-volume');
-    this.rainVariantBtns = document.querySelectorAll('#rain-variants .variant-btn');
-    this.pianoVariantBtns = document.querySelectorAll('#piano-variants .variant-btn');
+  // ── App State ──
+  let currentScene = null;
+  let controlsTimer = null;
+  let controlsVisible = true;
+  const CONTROLS_TIMEOUT = 4000;
 
-    this._init();
-  }
+  // ── Instances ──
+  const rainCanvas = new RainCanvas();
+  const audioEngine = new AudioEngine();
+  audioEngine.preload();
 
-  _init() {
-    // Initialize Three.js rain engine
-    this.rainEngine.init(this.rainContainer, this.glassCanvas);
+  // ── DOM References ──
+  const splash = document.getElementById('splash');
+  const sceneView = document.getElementById('scene-view');
+  const sceneImg = document.getElementById('scene-img');
+  const sceneTitle = document.getElementById('scene-title');
+  const controls = document.getElementById('controls');
+  const btnBack = document.getElementById('btn-back');
+  const rainVolume = document.getElementById('rain-volume');
+  const pianoVolume = document.getElementById('piano-volume');
 
-    // Scene card clicks
-    document.querySelectorAll('.scene-card').forEach(card => {
-      card.addEventListener('click', () => {
-        const sceneId = card.dataset.scene;
-        this._enterScene(sceneId);
-      });
+  // ── Scene Card Click ──
+  document.querySelectorAll('.scene-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const sceneId = card.dataset.scene;
+      enterScene(sceneId);
     });
+  });
 
-    // Back button
-    this.btnBack.addEventListener('click', () => this._exitScene());
-
-    // Volume sliders
-    this.rainVolumeSlider.addEventListener('input', (e) => {
-      this.audioEngine.setRainVolume(parseFloat(e.target.value));
-    });
-    this.pianoVolumeSlider.addEventListener('input', (e) => {
-      this.audioEngine.setPianoVolume(parseFloat(e.target.value));
-    });
-
-    // Rain variant buttons
-    this.rainVariantBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        this.rainVariantBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        this.audioEngine.setRainVariant(btn.dataset.variant);
-      });
-    });
-
-    // Piano variant buttons
-    this.pianoVariantBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        this.pianoVariantBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        this.audioEngine.setPianoVariant(btn.dataset.variant);
-      });
-    });
-
-    // Controls auto-hide
-    this._setupAutoHide();
-
-    // Keyboard shortcut: Escape to go back
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && this.currentScene) {
-        this._exitScene();
-      }
-    });
-  }
-
-  _enterScene(sceneId) {
-    if (!SCENES[sceneId]) return;
-    this.currentScene = sceneId;
-
+  // ── Enter Scene ──
+  function enterScene(sceneId) {
     const scene = SCENES[sceneId];
+    if (!scene) return;
+    currentScene = sceneId;
+
+    // Start audio system on first interaction
+    audioEngine.start();
 
     // Set background image
-    this.sceneImage.src = scene.image;
-    this.sceneLabel.textContent = scene.label;
+    sceneImg.src = scene.image;
+    sceneImg.alt = scene.title;
+    sceneTitle.textContent = scene.title;
 
-    // Transition
-    this.splash.classList.add('hidden');
-    this.sceneView.classList.add('active');
+    // Transition: hide splash, show scene
+    splash.classList.add('leaving');
+    setTimeout(() => {
+      splash.classList.add('hidden');
+      sceneView.classList.remove('hidden');
+      sceneView.classList.add('entering');
 
-    // Start rain engine
-    this.rainEngine.setScene(sceneId);
-    this.rainEngine.start();
+      // Start rain canvas
+      rainCanvas.start(sceneId);
 
-    // Start audio (user gesture required — this comes from click)
-    this.audioEngine.init();
-    this.audioEngine.resume();
-    this.audioEngine.setRainVolume(parseFloat(this.rainVolumeSlider.value));
-    this.audioEngine.setPianoVolume(parseFloat(this.pianoVolumeSlider.value));
-    this.audioEngine.startRain();
-    this.audioEngine.startPiano();
+      // Set default audio variants
+      setActiveRainPill(scene.defaultRain);
+      setActivePianoPill(scene.defaultPiano);
+      audioEngine.setRainVariant(scene.defaultRain);
+      audioEngine.setPianoVariant(scene.defaultPiano);
 
-    // Show controls, then auto-hide
-    this._showControls();
-    this._startAutoHide();
+      // Apply volume from sliders
+      audioEngine.setRainVolume(rainVolume.value / 100);
+      audioEngine.setPianoVolume(pianoVolume.value / 100);
+
+      // Start control auto-hide
+      showControls();
+      startControlsTimer();
+    }, 600);
   }
 
-  _exitScene() {
-    if (!this.currentScene) return;
-    this.currentScene = null;
-
+  // ── Back to Splash ──
+  btnBack.addEventListener('click', () => {
     // Stop everything
-    this.rainEngine.stop();
-    this.audioEngine.stopAll();
+    rainCanvas.stop();
+    audioEngine.stopAll();
+    currentScene = null;
 
     // Transition
-    this.sceneView.classList.remove('active');
-    this.splash.classList.remove('hidden');
+    sceneView.classList.add('hidden');
+    sceneView.classList.remove('entering');
+    splash.classList.remove('hidden', 'leaving');
 
-    // Clear auto-hide
-    if (this.controlsTimer) {
-      clearTimeout(this.controlsTimer);
-      this.controlsTimer = null;
+    clearControlsTimer();
+  });
+
+  // ── Rain Variant Pills ──
+  document.querySelectorAll('[data-rain]').forEach(pill => {
+    pill.addEventListener('click', () => {
+      const variant = pill.dataset.rain;
+      setActiveRainPill(variant);
+      audioEngine.setRainVariant(variant);
+    });
+  });
+
+  // ── Piano Variant Pills ──
+  document.querySelectorAll('[data-piano]').forEach(pill => {
+    pill.addEventListener('click', () => {
+      const variant = pill.dataset.piano;
+      setActivePianoPill(variant);
+      audioEngine.setPianoVariant(variant);
+    });
+  });
+
+  // ── Volume Sliders ──
+  rainVolume.addEventListener('input', () => {
+    audioEngine.setRainVolume(rainVolume.value / 100);
+  });
+
+  pianoVolume.addEventListener('input', () => {
+    audioEngine.setPianoVolume(pianoVolume.value / 100);
+  });
+
+  // ── Pill Active State Helpers ──
+  function setActiveRainPill(variant) {
+    document.querySelectorAll('[data-rain]').forEach(p => p.classList.remove('active'));
+    const pill = document.querySelector(`[data-rain="${variant}"]`);
+    if (pill) pill.classList.add('active');
+  }
+
+  function setActivePianoPill(variant) {
+    document.querySelectorAll('[data-piano]').forEach(p => p.classList.remove('active'));
+    const pill = document.querySelector(`[data-piano="${variant}"]`);
+    if (pill) pill.classList.add('active');
+  }
+
+  // ── Controls Auto-Hide ──
+  function showControls() {
+    controls.classList.remove('auto-hidden');
+    controlsVisible = true;
+  }
+
+  function hideControls() {
+    controls.classList.add('auto-hidden');
+    controlsVisible = false;
+  }
+
+  function startControlsTimer() {
+    clearControlsTimer();
+    controlsTimer = setTimeout(hideControls, CONTROLS_TIMEOUT);
+  }
+
+  function clearControlsTimer() {
+    if (controlsTimer) {
+      clearTimeout(controlsTimer);
+      controlsTimer = null;
     }
   }
 
-  _setupAutoHide() {
-    const show = () => {
-      if (!this.currentScene) return;
-      this._showControls();
-      this._startAutoHide();
-    };
+  // Show controls on mouse move / touch
+  function onActivity() {
+    if (!currentScene) return;
+    showControls();
+    startControlsTimer();
+  }
 
-    // Mouse movement shows controls
-    this.sceneView.addEventListener('mousemove', show);
-    this.sceneView.addEventListener('touchstart', show, { passive: true });
-
-    // Prevent auto-hide while interacting with controls
-    this.controls.addEventListener('mouseenter', () => {
-      if (this.controlsTimer) {
-        clearTimeout(this.controlsTimer);
-        this.controlsTimer = null;
+  sceneView.addEventListener('mousemove', onActivity);
+  sceneView.addEventListener('touchstart', onActivity, { passive: true });
+  sceneView.addEventListener('click', (e) => {
+    // If clicking on the scene area (not controls), toggle controls
+    if (e.target === sceneView || e.target === sceneImg || e.target.id === 'rain-canvas') {
+      if (controlsVisible) {
+        hideControls();
+        clearControlsTimer();
+      } else {
+        onActivity();
       }
-    });
-    this.controls.addEventListener('mouseleave', () => {
-      if (this.currentScene) this._startAutoHide();
-    });
+    }
+  });
 
-    // Touch interactions on controls keep them visible
-    this.controls.addEventListener('touchstart', (e) => {
-      e.stopPropagation();
-      if (this.controlsTimer) {
-        clearTimeout(this.controlsTimer);
-        this.controlsTimer = null;
-      }
-    }, { passive: true });
+  // Pause auto-hide when hovering over controls
+  controls.addEventListener('mouseenter', clearControlsTimer);
+  controls.addEventListener('mouseleave', () => {
+    if (currentScene) startControlsTimer();
+  });
 
-    this.controls.addEventListener('touchend', () => {
-      if (this.currentScene) this._startAutoHide();
-    }, { passive: true });
-  }
-
-  _showControls() {
-    this.controls.classList.remove('hidden');
-    this.controlsVisible = true;
-  }
-
-  _hideControls() {
-    this.controls.classList.add('hidden');
-    this.controlsVisible = false;
-  }
-
-  _startAutoHide() {
-    if (this.controlsTimer) clearTimeout(this.controlsTimer);
-    this.controlsTimer = setTimeout(() => {
-      this._hideControls();
-    }, 4000);
-  }
-}
-
-// ---- Boot ----
-document.addEventListener('DOMContentLoaded', () => {
-  new App();
-});
+})();

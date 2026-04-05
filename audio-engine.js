@@ -1,569 +1,360 @@
-/**
- * Audio Engine v2 — Procedural rain + piano with selectable variants
- * 5 rain variants + 5 piano variants, all Web Audio API
- */
+/* ═══════════════════════════════════════════
+   AUDIO ENGINE — Real Rain Audio + Procedural Piano
+   ═══════════════════════════════════════════ */
 
-// ---- Rain Variant Configurations ----
-const RAIN_VARIANTS = {
-  gentle: {
-    label: 'Gentle Patter',
-    layers: [
-      { type: 'bandpass', freq: 3000, Q: 0.6, gain: 0.25 },
-      { type: 'highpass', freq: 2000, Q: 0.4, gain: 0.15 }
-    ],
-    modSpeed: 0.3,
-    modDepth: 0.15,
-    baseGain: 0.5,
-    thunder: false,
-    plinks: false
-  },
-  heavy: {
-    label: 'Heavy Downpour',
-    layers: [
-      { type: 'bandpass', freq: 800, Q: 0.3, gain: 0.35 },
-      { type: 'bandpass', freq: 2500, Q: 0.5, gain: 0.3 },
-      { type: 'lowpass', freq: 4000, Q: 0.2, gain: 0.25 }
-    ],
-    modSpeed: 0.8,
-    modDepth: 0.2,
-    baseGain: 0.8,
-    thunder: false,
-    plinks: false
-  },
-  glass: {
-    label: 'Rain on Glass',
-    layers: [
-      { type: 'bandpass', freq: 4000, Q: 1.2, gain: 0.3 },
-      { type: 'highpass', freq: 3000, Q: 0.8, gain: 0.2 }
-    ],
-    modSpeed: 1.5,
-    modDepth: 0.25,
-    baseGain: 0.55,
-    thunder: false,
-    plinks: true,
-    plinkFreqRange: [3000, 6000],
-    plinkInterval: [0.1, 0.5]
-  },
-  storm: {
-    label: 'Distant Storm',
-    layers: [
-      { type: 'lowpass', freq: 600, Q: 0.3, gain: 0.4 },
-      { type: 'bandpass', freq: 1200, Q: 0.4, gain: 0.2 }
-    ],
-    modSpeed: 0.15,
-    modDepth: 0.3,
-    baseGain: 0.6,
-    thunder: true,
-    thunderInterval: [8, 20],
-    plinks: false
-  },
-  forest: {
-    label: 'Forest Rain',
-    layers: [
-      { type: 'bandpass', freq: 1500, Q: 0.5, gain: 0.25 },
-      { type: 'bandpass', freq: 3500, Q: 0.7, gain: 0.2 },
-      { type: 'highpass', freq: 1000, Q: 0.3, gain: 0.15 }
-    ],
-    modSpeed: 0.5,
-    modDepth: 0.18,
-    baseGain: 0.55,
-    thunder: false,
-    plinks: true,
-    plinkFreqRange: [1500, 4500],
-    plinkInterval: [0.15, 0.6]
-  }
-};
+(function() {
+  'use strict';
 
-// ---- Piano Variant Configurations ----
-const PIANO_VARIANTS = {
-  contemplative: {
-    label: 'Contemplative',
-    // D minor pentatonic: D, F, G, A, C
-    notes: [
-      146.83, 174.61, 196.00, 220.00, 261.63,
-      293.66, 349.23, 392.00, 440.00, 523.25
-    ],
-    timingRange: [4, 8],
-    chordProb: 0.15,
-    adsr: { attack: 0.08, decay: 1.5, sustain: 0.15, release: 2.5 },
-    reverbAmount: 0.7,
-    volume: 0.35,
-    velocityRange: [0.25, 0.5]
-  },
-  jazz: {
-    label: 'Gentle Jazz',
-    // Bb major 7 arpeggios: Bb, D, F, A, C, Eb
-    notes: [
-      233.08, 293.66, 349.23, 440.00, 523.25, 311.13,
-      466.16, 587.33, 698.46, 880.00
-    ],
-    timingRange: [2, 5],
-    chordProb: 0.35,
-    adsr: { attack: 0.05, decay: 0.8, sustain: 0.2, release: 1.8 },
-    reverbAmount: 0.5,
-    volume: 0.3,
-    velocityRange: [0.3, 0.6]
-  },
-  melancholic: {
-    label: 'Melancholic',
-    // A minor: A, B, C, D, E, F, G
-    notes: [
-      220.00, 246.94, 261.63, 293.66, 329.63, 349.23, 392.00,
-      440.00, 493.88, 523.25
-    ],
-    timingRange: [3, 7],
-    chordProb: 0.2,
-    adsr: { attack: 0.1, decay: 2.0, sustain: 0.1, release: 3.0 },
-    reverbAmount: 0.75,
-    volume: 0.3,
-    velocityRange: [0.2, 0.45]
-  },
-  ethereal: {
-    label: 'Ethereal',
-    // Miyako-bushi: C, Db, F, G, Ab
-    notes: [
-      261.63, 277.18, 349.23, 392.00, 415.30,
-      523.25, 554.37, 698.46, 784.00, 830.61
-    ],
-    timingRange: [5, 10],
-    chordProb: 0.1,
-    adsr: { attack: 0.15, decay: 2.5, sustain: 0.12, release: 4.0 },
-    reverbAmount: 0.85,
-    volume: 0.28,
-    velocityRange: [0.15, 0.4]
-  },
-  pastoral: {
-    label: 'Pastoral',
-    // C major: C, E, G, A, B, D
-    notes: [
-      261.63, 329.63, 392.00, 440.00, 493.88,
-      523.25, 659.25, 784.00, 880.00, 987.77
-    ],
-    timingRange: [2, 4],
-    chordProb: 0.3,
-    adsr: { attack: 0.04, decay: 0.6, sustain: 0.25, release: 1.5 },
-    reverbAmount: 0.45,
-    volume: 0.32,
-    velocityRange: [0.35, 0.6]
-  }
-};
+  // ── Piano Scale Definitions ──
+  const PIANO_CONFIGS = {
+    contemplative: {
+      notes: [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25],
+      tempo: 2200,
+      velocityRange: [0.15, 0.35],
+      sustainRange: [2.0, 4.0],
+      restProbability: 0.35,
+      chordProbability: 0.15,
+      octaveShift: [0.5, 1, 1, 2],
+      reverbDecay: 3.0
+    },
+    jazz: {
+      notes: [261.63, 293.66, 311.13, 349.23, 392.00, 440.00, 466.16, 523.25],
+      tempo: 1600,
+      velocityRange: [0.12, 0.30],
+      sustainRange: [1.2, 3.0],
+      restProbability: 0.25,
+      chordProbability: 0.3,
+      octaveShift: [0.5, 1, 1, 2],
+      reverbDecay: 2.5
+    },
+    melancholic: {
+      notes: [220.00, 261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 523.25],
+      tempo: 2800,
+      velocityRange: [0.1, 0.25],
+      sustainRange: [3.0, 5.5],
+      restProbability: 0.4,
+      chordProbability: 0.1,
+      octaveShift: [0.5, 0.5, 1, 1],
+      reverbDecay: 4.0
+    },
+    ethereal: {
+      notes: [293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25, 783.99],
+      tempo: 3200,
+      velocityRange: [0.08, 0.2],
+      sustainRange: [4.0, 7.0],
+      restProbability: 0.45,
+      chordProbability: 0.2,
+      octaveShift: [1, 1, 2, 2],
+      reverbDecay: 5.0
+    },
+    pastoral: {
+      notes: [261.63, 293.66, 329.63, 369.99, 392.00, 440.00, 493.88, 523.25],
+      tempo: 2000,
+      velocityRange: [0.12, 0.28],
+      sustainRange: [1.8, 3.5],
+      restProbability: 0.3,
+      chordProbability: 0.2,
+      octaveShift: [0.5, 1, 1, 2],
+      reverbDecay: 3.0
+    }
+  };
 
-export class AudioEngine {
-  constructor() {
-    this.ctx = null;
-    this.initialized = false;
+  class AudioEngine {
+    constructor() {
+      // Rain audio (real mp3 files)
+      this.rainAudios = {};
+      this.currentRainName = null;
+      this.currentRainEl = null;
+      this._rainVolume = 0.6;
 
-    // Rain state
-    this.rainGain = null;
-    this.rainMasterGain = null;
-    this.rainNodes = [];
-    this.rainVariant = 'gentle';
-    this.rainVolume = 0.7;
+      // Piano (procedural via Web Audio)
+      this.pianoCtx = null;
+      this.pianoGain = null;
+      this.pianoConvolver = null;
+      this.pianoVariant = null;
+      this._pianoVolume = 0.3;
+      this._pianoPlaying = false;
+      this._pianoTimer = null;
 
-    // Piano state
-    this.pianoGain = null;
-    this.pianoMasterGain = null;
-    this.pianoConvolver = null;
-    this.pianoVariant = 'contemplative';
-    this.pianoVolume = 0;
-    this.pianoTimerId = null;
-    this.pianoRunning = false;
+      this._started = false;
+    }
 
-    // Rain extras
-    this.plinkTimerId = null;
-    this.thunderTimerId = null;
-  }
+    // ── Preload rain audio files ──
+    preload() {
+      const variants = {
+        'gentle':  'assets/rain-gentle.mp3',
+        'heavy':   'assets/rain-heavy.mp3',
+        'window':  'assets/rain-window.mp3',
+        'forest':  'assets/rain-forest.mp3',
+        'thunder': 'assets/rain-thunder.mp3'
+      };
 
-  init() {
-    if (this.initialized) return;
-    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      for (const [name, src] of Object.entries(variants)) {
+        const audio = document.createElement('audio');
+        audio.src = src;
+        audio.loop = true;
+        audio.preload = 'auto';
+        audio.volume = 0;
+        this.rainAudios[name] = audio;
+      }
+    }
 
-    // Master gains
-    this.rainMasterGain = this.ctx.createGain();
-    this.rainMasterGain.gain.value = this.rainVolume;
-    this.rainMasterGain.connect(this.ctx.destination);
+    // ── Must be called from user gesture ──
+    start() {
+      if (this._started) return;
+      this._started = true;
 
-    this.pianoMasterGain = this.ctx.createGain();
-    this.pianoMasterGain.gain.value = this.pianoVolume;
-    this.pianoMasterGain.connect(this.ctx.destination);
+      // Initialize Web Audio for piano
+      this.pianoCtx = new (window.AudioContext || window.webkitAudioContext)();
+      
+      // Master gain for piano
+      this.pianoGain = this.pianoCtx.createGain();
+      this.pianoGain.gain.value = this._pianoVolume;
 
-    // Create convolver for piano reverb
-    this._createReverb();
+      // Create convolver reverb for piano
+      this._createReverb();
+    }
 
-    this.initialized = true;
-  }
-
-  _createReverb() {
-    const sampleRate = this.ctx.sampleRate;
-    const length = sampleRate * 3; // 3 second reverb
-    const impulse = this.ctx.createBuffer(2, length, sampleRate);
-
-    for (let ch = 0; ch < 2; ch++) {
-      const data = impulse.getChannelData(ch);
-      for (let i = 0; i < length; i++) {
-        const t = i / sampleRate;
-        // Exponential decay with some early reflections
-        data[i] = (Math.random() * 2 - 1) * Math.exp(-t * 2.5) * 0.5;
-        // Early reflections
-        if (t < 0.05) {
-          data[i] += (Math.random() * 2 - 1) * 0.3;
+    _createReverb() {
+      const ctx = this.pianoCtx;
+      const convolver = ctx.createConvolver();
+      
+      // Generate impulse response for reverb
+      const sampleRate = ctx.sampleRate;
+      const length = sampleRate * 3; // 3 second reverb
+      const impulse = ctx.createBuffer(2, length, sampleRate);
+      
+      for (let channel = 0; channel < 2; channel++) {
+        const data = impulse.getChannelData(channel);
+        for (let i = 0; i < length; i++) {
+          const t = i / sampleRate;
+          data[i] = (Math.random() * 2 - 1) * Math.exp(-t * 2.0);
         }
       }
+      
+      convolver.buffer = impulse;
+      
+      // Wet/dry mix
+      const dryGain = ctx.createGain();
+      dryGain.gain.value = 0.6;
+      const wetGain = ctx.createGain();
+      wetGain.gain.value = 0.4;
+
+      // dry path -> master
+      dryGain.connect(this.pianoGain);
+      // wet path -> convolver -> master
+      convolver.connect(wetGain);
+      wetGain.connect(this.pianoGain);
+      
+      // Master -> destination
+      this.pianoGain.connect(ctx.destination);
+
+      this._pianoDry = dryGain;
+      this._pianoWet = convolver;
     }
 
-    this.pianoConvolver = this.ctx.createConvolver();
-    this.pianoConvolver.buffer = impulse;
-  }
+    // ── Rain Control ──
+    setRainVariant(name) {
+      if (this.currentRainName === name) return;
 
-  // ---- Rain ----
-  setRainVariant(variant) {
-    if (!RAIN_VARIANTS[variant]) return;
-    this.rainVariant = variant;
-    if (this.initialized) {
-      this._rebuildRain();
-    }
-  }
-
-  setRainVolume(vol) {
-    this.rainVolume = vol;
-    if (this.rainMasterGain) {
-      this.rainMasterGain.gain.setTargetAtTime(vol, this.ctx.currentTime, 0.1);
-    }
-  }
-
-  startRain() {
-    if (!this.initialized) this.init();
-    this._rebuildRain();
-  }
-
-  _rebuildRain() {
-    // Stop existing rain nodes
-    this._stopRainNodes();
-
-    const cfg = RAIN_VARIANTS[this.rainVariant];
-    const now = this.ctx.currentTime;
-
-    // Create intermediate gain for this variant
-    this.rainGain = this.ctx.createGain();
-    this.rainGain.gain.value = cfg.baseGain;
-    this.rainGain.connect(this.rainMasterGain);
-
-    // Create noise layers
-    for (const layer of cfg.layers) {
-      const bufferSize = this.ctx.sampleRate * 2;
-      const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-      const data = noiseBuffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) {
-        data[i] = Math.random() * 2 - 1;
+      // Fade out current
+      if (this.currentRainEl) {
+        this._fadeAudio(this.currentRainEl, 0, 600, () => {
+          this.currentRainEl.pause();
+        });
       }
 
-      const source = this.ctx.createBufferSource();
-      source.buffer = noiseBuffer;
-      source.loop = true;
+      this.currentRainName = name;
+      const audio = this.rainAudios[name];
+      if (!audio) return;
 
-      const filter = this.ctx.createBiquadFilter();
-      filter.type = layer.type;
-      filter.frequency.value = layer.freq;
-      filter.Q.value = layer.Q;
+      this.currentRainEl = audio;
+      audio.currentTime = 0;
+      audio.volume = 0;
+      const playPromise = audio.play();
+      if (playPromise) playPromise.catch(() => {});
 
-      const layerGain = this.ctx.createGain();
-      layerGain.gain.value = layer.gain;
-
-      // Amplitude modulation via LFO
-      const lfo = this.ctx.createOscillator();
-      lfo.type = 'sine';
-      lfo.frequency.value = cfg.modSpeed + Math.random() * 0.2;
-
-      const lfoGain = this.ctx.createGain();
-      lfoGain.gain.value = cfg.modDepth * layer.gain;
-
-      lfo.connect(lfoGain);
-      lfoGain.connect(layerGain.gain);
-
-      source.connect(filter);
-      filter.connect(layerGain);
-      layerGain.connect(this.rainGain);
-
-      source.start(now);
-      lfo.start(now);
-
-      this.rainNodes.push({ source, filter, layerGain, lfo, lfoGain });
+      this._fadeAudio(audio, this._rainVolume, 800);
     }
 
-    // Plinks (glass and forest variants)
-    if (cfg.plinks) {
-      this._startPlinks(cfg);
-    }
-
-    // Thunder
-    if (cfg.thunder) {
-      this._startThunder(cfg);
-    }
-  }
-
-  _stopRainNodes() {
-    for (const n of this.rainNodes) {
-      try { n.source.stop(); } catch (e) {}
-      try { n.lfo.stop(); } catch (e) {}
-      try { n.source.disconnect(); } catch (e) {}
-      try { n.filter.disconnect(); } catch (e) {}
-      try { n.layerGain.disconnect(); } catch (e) {}
-      try { n.lfo.disconnect(); } catch (e) {}
-      try { n.lfoGain.disconnect(); } catch (e) {}
-    }
-    this.rainNodes = [];
-
-    if (this.plinkTimerId) {
-      clearTimeout(this.plinkTimerId);
-      this.plinkTimerId = null;
-    }
-    if (this.thunderTimerId) {
-      clearTimeout(this.thunderTimerId);
-      this.thunderTimerId = null;
-    }
-
-    if (this.rainGain) {
-      try { this.rainGain.disconnect(); } catch (e) {}
-      this.rainGain = null;
-    }
-  }
-
-  _startPlinks(cfg) {
-    const [minI, maxI] = cfg.plinkInterval;
-    const [minF, maxF] = cfg.plinkFreqRange;
-
-    const playPlink = () => {
-      if (!this.rainGain) return;
-
-      const now = this.ctx.currentTime;
-      const freq = minF + Math.random() * (maxF - minF);
-      const osc = this.ctx.createOscillator();
-      osc.type = 'sine';
-      osc.frequency.value = freq;
-
-      const g = this.ctx.createGain();
-      const vol = 0.02 + Math.random() * 0.04;
-      g.gain.setValueAtTime(vol, now);
-      g.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-
-      osc.connect(g);
-      g.connect(this.rainGain);
-      osc.start(now);
-      osc.stop(now + 0.15);
-
-      const next = (minI + Math.random() * (maxI - minI)) * 1000;
-      this.plinkTimerId = setTimeout(playPlink, next);
-    };
-
-    this.plinkTimerId = setTimeout(playPlink, Math.random() * 500);
-  }
-
-  _startThunder(cfg) {
-    const [minI, maxI] = cfg.thunderInterval;
-
-    const playThunder = () => {
-      if (!this.rainGain) return;
-
-      const now = this.ctx.currentTime;
-      const duration = 2 + Math.random() * 3;
-
-      // Low rumble via filtered noise
-      const bufSize = this.ctx.sampleRate * Math.ceil(duration + 1);
-      const buf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate);
-      const d = buf.getChannelData(0);
-      for (let i = 0; i < bufSize; i++) {
-        d[i] = Math.random() * 2 - 1;
+    setRainVolume(val) {
+      this._rainVolume = val;
+      if (this.currentRainEl) {
+        this.currentRainEl.volume = val;
       }
-
-      const src = this.ctx.createBufferSource();
-      src.buffer = buf;
-
-      const lp = this.ctx.createBiquadFilter();
-      lp.type = 'lowpass';
-      lp.frequency.value = 150 + Math.random() * 100;
-      lp.Q.value = 0.5;
-
-      const g = this.ctx.createGain();
-      g.gain.setValueAtTime(0.001, now);
-      g.gain.exponentialRampToValueAtTime(0.15 + Math.random() * 0.1, now + 0.3);
-      g.gain.exponentialRampToValueAtTime(0.001, now + duration);
-
-      src.connect(lp);
-      lp.connect(g);
-      g.connect(this.rainGain);
-      src.start(now);
-      src.stop(now + duration + 0.5);
-
-      const next = (minI + Math.random() * (maxI - minI)) * 1000;
-      this.thunderTimerId = setTimeout(playThunder, next);
-    };
-
-    const first = (minI + Math.random() * (maxI - minI)) * 1000;
-    this.thunderTimerId = setTimeout(playThunder, first);
-  }
-
-  stopRain() {
-    this._stopRainNodes();
-  }
-
-  // ---- Piano ----
-  setPianoVariant(variant) {
-    if (!PIANO_VARIANTS[variant]) return;
-    this.pianoVariant = variant;
-    // No rebuild needed — next note will use new config
-  }
-
-  setPianoVolume(vol) {
-    this.pianoVolume = vol;
-    if (this.pianoMasterGain) {
-      this.pianoMasterGain.gain.setTargetAtTime(vol, this.ctx.currentTime, 0.1);
     }
-  }
 
-  startPiano() {
-    if (!this.initialized) this.init();
-    if (this.pianoRunning) return;
-    this.pianoRunning = true;
-    this._scheduleNextNote();
-  }
+    // ── Piano Control ──
+    setPianoVariant(name) {
+      if (this.pianoVariant === name) return;
+      this.pianoVariant = name;
 
-  _scheduleNextNote() {
-    if (!this.pianoRunning) return;
+      // If already playing, the next note will use the new config
+      if (!this._pianoPlaying) {
+        this._startPianoLoop();
+      }
+    }
 
-    const cfg = PIANO_VARIANTS[this.pianoVariant];
-    const [minT, maxT] = cfg.timingRange;
-    const delay = (minT + Math.random() * (maxT - minT)) * 1000;
+    setPianoVolume(val) {
+      this._pianoVolume = val;
+      if (this.pianoGain) {
+        this.pianoGain.gain.setTargetAtTime(val, this.pianoCtx.currentTime, 0.1);
+      }
+    }
 
-    this.pianoTimerId = setTimeout(() => {
-      if (!this.pianoRunning) return;
-      this._playPianoNote();
+    _startPianoLoop() {
+      if (this._pianoPlaying) return;
+      this._pianoPlaying = true;
       this._scheduleNextNote();
-    }, delay);
-  }
+    }
 
-  _playPianoNote() {
-    const cfg = PIANO_VARIANTS[this.pianoVariant];
-    const now = this.ctx.currentTime;
-    const { attack, decay, sustain, release } = cfg.adsr;
-    const [minVel, maxVel] = cfg.velocityRange;
-    const velocity = minVel + Math.random() * (maxVel - minVel);
-
-    const isChord = Math.random() < cfg.chordProb;
-    const noteCount = isChord ? (2 + Math.floor(Math.random() * 2)) : 1;
-
-    // Pick notes
-    const indices = [];
-    const baseIdx = Math.floor(Math.random() * cfg.notes.length);
-    indices.push(baseIdx);
-
-    if (isChord) {
-      for (let n = 1; n < noteCount; n++) {
-        let idx = baseIdx + (n * 2); // roughly thirds
-        if (idx >= cfg.notes.length) idx = idx % cfg.notes.length;
-        indices.push(idx);
+    _stopPianoLoop() {
+      this._pianoPlaying = false;
+      if (this._pianoTimer) {
+        clearTimeout(this._pianoTimer);
+        this._pianoTimer = null;
       }
     }
 
-    for (const idx of indices) {
-      const freq = cfg.notes[idx];
-      this._synthPianoTone(freq, velocity, attack, decay, sustain, release, cfg.reverbAmount, cfg.volume);
+    _scheduleNextNote() {
+      if (!this._pianoPlaying || !this.pianoVariant) return;
+
+      const config = PIANO_CONFIGS[this.pianoVariant];
+      if (!config) return;
+
+      // Random tempo variation
+      const delay = config.tempo * (0.6 + Math.random() * 0.8);
+
+      this._pianoTimer = setTimeout(() => {
+        if (!this._pianoPlaying) return;
+
+        // Rest probability
+        if (Math.random() > config.restProbability) {
+          this._playPianoNote(config);
+        }
+
+        this._scheduleNextNote();
+      }, delay);
+    }
+
+    _playPianoNote(config) {
+      if (!this.pianoCtx || this.pianoCtx.state === 'closed') return;
+      
+      // Resume context if suspended
+      if (this.pianoCtx.state === 'suspended') {
+        this.pianoCtx.resume();
+      }
+
+      const ctx = this.pianoCtx;
+      const now = ctx.currentTime;
+
+      // Pick note
+      const noteIdx = Math.floor(Math.random() * config.notes.length);
+      const baseFreq = config.notes[noteIdx];
+      const octave = config.octaveShift[Math.floor(Math.random() * config.octaveShift.length)];
+      const freq = baseFreq * octave;
+
+      // Velocity
+      const vel = config.velocityRange[0] + Math.random() * (config.velocityRange[1] - config.velocityRange[0]);
+      const sustain = config.sustainRange[0] + Math.random() * (config.sustainRange[1] - config.sustainRange[0]);
+
+      this._synthPianoTone(freq, vel, sustain, now);
+
+      // Chord probability
+      if (Math.random() < config.chordProbability) {
+        // Add a chord tone (third or fifth above)
+        const intervals = [1.25, 1.335, 1.5]; // major third, minor third, fifth
+        const interval = intervals[Math.floor(Math.random() * intervals.length)];
+        const chordFreq = freq * interval;
+        const chordVel = vel * 0.6;
+        this._synthPianoTone(chordFreq, chordVel, sustain * 0.8, now + 0.02 + Math.random() * 0.08);
+      }
+    }
+
+    _synthPianoTone(freq, velocity, sustain, startTime) {
+      const ctx = this.pianoCtx;
+
+      // Oscillator (detuned pair for richness)
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      osc1.type = 'triangle';
+      osc2.type = 'sine';
+      osc1.frequency.value = freq;
+      osc2.frequency.value = freq * 1.002; // slight detune
+
+      // Envelope gain
+      const env = ctx.createGain();
+      env.gain.setValueAtTime(0, startTime);
+      env.gain.linearRampToValueAtTime(velocity, startTime + 0.008); // fast attack
+      env.gain.exponentialRampToValueAtTime(velocity * 0.6, startTime + 0.1); // hammer decay
+      env.gain.exponentialRampToValueAtTime(velocity * 0.3, startTime + sustain * 0.5);
+      env.gain.exponentialRampToValueAtTime(0.001, startTime + sustain);
+
+      // Subtle harmonics filter
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(freq * 6, startTime);
+      filter.frequency.exponentialRampToValueAtTime(freq * 2, startTime + sustain * 0.7);
+      filter.Q.value = 0.7;
+
+      // Connect: oscillators -> filter -> envelope -> dry + wet
+      const mix = ctx.createGain();
+      mix.gain.value = 0.5;
+
+      osc1.connect(filter);
+      osc2.connect(mix);
+      mix.connect(filter);
+      filter.connect(env);
+      env.connect(this._pianoDry);
+      env.connect(this._pianoWet);
+
+      osc1.start(startTime);
+      osc2.start(startTime);
+      osc1.stop(startTime + sustain + 0.1);
+      osc2.stop(startTime + sustain + 0.1);
+    }
+
+    // ── Fade utility for HTML audio elements ──
+    _fadeAudio(audioEl, targetVol, durationMs, onDone) {
+      const startVol = audioEl.volume;
+      const diff = targetVol - startVol;
+      const steps = 20;
+      const stepTime = durationMs / steps;
+      let step = 0;
+
+      const interval = setInterval(() => {
+        step++;
+        const progress = step / steps;
+        // Ease in-out
+        const eased = progress < 0.5
+          ? 2 * progress * progress
+          : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+        
+        audioEl.volume = Math.max(0, Math.min(1, startVol + diff * eased));
+        
+        if (step >= steps) {
+          clearInterval(interval);
+          audioEl.volume = Math.max(0, Math.min(1, targetVol));
+          if (onDone) onDone();
+        }
+      }, stepTime);
+    }
+
+    // ── Stop everything ──
+    stopAll() {
+      // Stop rain
+      if (this.currentRainEl) {
+        this.currentRainEl.pause();
+        this.currentRainEl.volume = 0;
+        this.currentRainEl = null;
+        this.currentRainName = null;
+      }
+
+      // Stop piano
+      this._stopPianoLoop();
     }
   }
 
-  _synthPianoTone(freq, velocity, attack, decay, sustain, release, reverbAmt, volume) {
-    const now = this.ctx.currentTime;
-    const totalDur = attack + decay + release + 0.5;
-
-    // Main tone: combination of sine harmonics
-    const harmonics = [
-      { ratio: 1, amp: 1.0 },
-      { ratio: 2, amp: 0.4 },
-      { ratio: 3, amp: 0.15 },
-      { ratio: 4, amp: 0.06 },
-      { ratio: 5, amp: 0.03 }
-    ];
-
-    const noteGain = this.ctx.createGain();
-    const peakGain = velocity * volume;
-
-    // ADSR
-    noteGain.gain.setValueAtTime(0.001, now);
-    noteGain.gain.linearRampToValueAtTime(peakGain, now + attack);
-    noteGain.gain.exponentialRampToValueAtTime(
-      Math.max(peakGain * sustain, 0.001),
-      now + attack + decay
-    );
-    noteGain.gain.exponentialRampToValueAtTime(0.001, now + attack + decay + release);
-
-    // Dry path
-    const dryGain = this.ctx.createGain();
-    dryGain.gain.value = 1 - reverbAmt;
-    noteGain.connect(dryGain);
-    dryGain.connect(this.pianoMasterGain);
-
-    // Wet path (reverb)
-    const wetGain = this.ctx.createGain();
-    wetGain.gain.value = reverbAmt;
-    noteGain.connect(wetGain);
-    wetGain.connect(this.pianoConvolver);
-    this.pianoConvolver.connect(this.pianoMasterGain);
-
-    for (const h of harmonics) {
-      const osc = this.ctx.createOscillator();
-      osc.type = 'sine';
-      osc.frequency.value = freq * h.ratio;
-
-      const hGain = this.ctx.createGain();
-      hGain.gain.value = h.amp;
-
-      // Slight detuning for warmth
-      osc.detune.value = (Math.random() - 0.5) * 6;
-
-      osc.connect(hGain);
-      hGain.connect(noteGain);
-      osc.start(now);
-      osc.stop(now + totalDur);
-    }
-
-    // Hammer attack transient
-    const clickOsc = this.ctx.createOscillator();
-    clickOsc.type = 'triangle';
-    clickOsc.frequency.value = freq * 8;
-    const clickGain = this.ctx.createGain();
-    clickGain.gain.setValueAtTime(velocity * 0.08, now);
-    clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
-    clickOsc.connect(clickGain);
-    clickGain.connect(noteGain);
-    clickOsc.start(now);
-    clickOsc.stop(now + 0.03);
-  }
-
-  stopPiano() {
-    this.pianoRunning = false;
-    if (this.pianoTimerId) {
-      clearTimeout(this.pianoTimerId);
-      this.pianoTimerId = null;
-    }
-  }
-
-  // ---- Lifecycle ----
-  resume() {
-    if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume();
-    }
-  }
-
-  stopAll() {
-    this.stopRain();
-    this.stopPiano();
-  }
-
-  destroy() {
-    this.stopAll();
-    if (this.ctx) {
-      this.ctx.close();
-      this.ctx = null;
-    }
-    this.initialized = false;
-  }
-}
+  // Expose globally
+  window.AudioEngine = AudioEngine;
+})();

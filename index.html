@@ -2,166 +2,126 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="description" content="Rain View — A contemplative 3D ambient rain experience. Find stillness in the rain.">
-  <meta name="theme-color" content="#0a0a0c">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Rain View</title>
-
-  <!-- Fonts -->
+  <meta name="description" content="Cinematic rain on glass — ambient scenes with real rain audio and gentle piano.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-
-  <!-- Styles -->
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-
-  <!-- Favicon: raindrop SVG -->
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><path d='M16 2C16 2 6 16 6 22a10 10 0 0020 0C26 16 16 2 16 2z' fill='%234a7c8a' opacity='0.8'/></svg>">
-
-  <!-- Three.js via CDN import map -->
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.183.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.183.0/examples/jsm/"
-    }
-  }
-  </script>
 </head>
 <body>
 
-  <!-- ======== SPLASH SCREEN ======== -->
-  <div id="splash">
+  <!-- ═══════════ SPLASH SCREEN ═══════════ -->
+  <div id="splash" class="splash">
     <div class="splash-bg">
-      <img src="assets/splash-rain-window.jpg" alt="" aria-hidden="true">
+      <img src="assets/splash-rain-window.jpg" alt="" class="splash-img">
       <div class="splash-overlay"></div>
     </div>
-
     <div class="splash-content">
-      <!-- SVG Logo -->
-      <svg class="splash-logo" aria-label="Rain View" viewBox="0 0 48 48" width="48" height="48" fill="none" style="margin: 0 auto 1rem; display: block; opacity: 0; animation: fadeInUp 1s cubic-bezier(0.16,1,0.3,1) 0.1s forwards;">
-        <path d="M24 4C24 4 10 20 10 28a14 14 0 0028 0C38 20 24 4 24 4z" stroke="#e8e8ec" stroke-width="1.5" fill="none" opacity="0.5"/>
-        <path d="M24 10C24 10 16 22 16 27a8 8 0 0016 0C32 22 24 10 24 10z" stroke="#e8e8ec" stroke-width="1" fill="none" opacity="0.3"/>
-      </svg>
-
+      <div class="splash-logo">
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+          <path d="M20 4C20 4 8 18 8 26a12 12 0 0024 0C32 18 20 4 20 4z" stroke="currentColor" stroke-width="1.5" fill="none" opacity="0.7"/>
+          <path d="M20 10C20 10 13 19 13 24a7 7 0 0014 0C27 19 20 10 20 10z" stroke="currentColor" stroke-width="1" fill="none" opacity="0.4"/>
+        </svg>
+      </div>
       <h1 class="splash-title">Rain View</h1>
       <p class="splash-subtitle">Find stillness in the rain</p>
-
-      <!-- Scene Cards -->
-      <div class="scene-grid">
-        <button class="scene-card" data-scene="asian-city" aria-label="Tokyo Evening — Neon-lit streets through rain-kissed glass">
-          <img src="assets/scene-asian-city.jpg" alt="Tokyo Evening" loading="eager">
+      <div class="splash-scenes">
+        <button class="scene-card" data-scene="asian-city">
+          <img src="assets/scene-asian-city.jpg" alt="Shibuya in the rain" loading="eager">
           <div class="scene-card-info">
-            <div class="scene-card-title font-display">Tokyo Evening</div>
-            <div class="scene-card-desc">Neon-lit streets through rain-kissed glass</div>
+            <span class="scene-card-name">Tokyo Evening</span>
+            <span class="scene-card-desc">Neon-lit streets through rain-kissed glass</span>
           </div>
         </button>
-
-        <button class="scene-card" data-scene="ny-city" aria-label="New York Night — Manhattan through rainy window panes">
-          <img src="assets/scene-ny-city.jpg" alt="New York Night" loading="eager">
+        <button class="scene-card" data-scene="ny-city">
+          <img src="assets/scene-ny-city.jpg" alt="Manhattan in the rain" loading="eager">
           <div class="scene-card-info">
-            <div class="scene-card-title font-display">New York Night</div>
-            <div class="scene-card-desc">Manhattan through rainy window panes</div>
+            <span class="scene-card-name">New York Night</span>
+            <span class="scene-card-desc">Manhattan skyline, steam, and amber light</span>
           </div>
         </button>
-
-        <button class="scene-card" data-scene="autumn-cabin" aria-label="Autumn Forest — Immersed in fall foliage and mountain mist">
-          <img src="assets/scene-autumn-cabin.jpg" alt="Autumn Forest" loading="eager">
+        <button class="scene-card" data-scene="autumn-cabin">
+          <img src="assets/scene-autumn-cabin.jpg" alt="Autumn forest cabin" loading="eager">
           <div class="scene-card-info">
-            <div class="scene-card-title font-display">Autumn Forest</div>
-            <div class="scene-card-desc">Immersed in fall foliage and mountain mist</div>
+            <span class="scene-card-name">Autumn Forest</span>
+            <span class="scene-card-desc">Immersed in fall foliage and mountain mist</span>
           </div>
         </button>
-
-        <button class="scene-card" data-scene="japanese-garden" aria-label="Zen Garden — Cherry blossoms and rain on still water">
-          <img src="assets/scene-japanese-garden.jpg" alt="Zen Garden" loading="eager">
+        <button class="scene-card" data-scene="japanese-garden">
+          <img src="assets/scene-japanese-garden.jpg" alt="Japanese garden in rain" loading="eager">
           <div class="scene-card-info">
-            <div class="scene-card-title font-display">Zen Garden</div>
-            <div class="scene-card-desc">Cherry blossoms and rain on still water</div>
+            <span class="scene-card-name">Zen Garden</span>
+            <span class="scene-card-desc">Cherry blossoms and rain on still water</span>
           </div>
         </button>
       </div>
-
-      <p class="splash-hint">Tap a scene to begin</p>
     </div>
   </div>
 
-  <!-- ======== SCENE VIEW ======== -->
-  <div id="scene-view">
+  <!-- ═══════════ MAIN SCENE VIEW ═══════════ -->
+  <div id="scene-view" class="scene-view hidden">
+
     <!-- Background image -->
-    <div class="scene-background">
-      <img id="scene-image" src="" alt="Scene background">
+    <div id="scene-bg" class="scene-bg">
+      <img id="scene-img" src="" alt="" class="scene-bg-img">
     </div>
 
-    <!-- Vignette -->
-    <div class="scene-vignette"></div>
+    <!-- Rain canvas overlay (transparent, on top of image) -->
+    <canvas id="rain-canvas"></canvas>
 
-    <!-- Three.js rain canvas (inserted by rain-engine.js) -->
-    <div id="rain-container"></div>
+    <!-- Controls overlay (auto-hides) -->
+    <div id="controls" class="controls">
 
-    <!-- Glass droplet overlay canvas (city scenes only, inserted by rain-engine.js) -->
-    <canvas id="glass-canvas"></canvas>
+      <!-- Top bar: back + scene title -->
+      <div class="controls-top">
+        <button id="btn-back" class="btn-icon" aria-label="Back to scenes">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M13 4L7 10L13 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <span id="scene-title" class="controls-title"></span>
+      </div>
 
-    <!-- Controls -->
-    <div class="controls" id="controls">
-      <div class="controls-bar">
-        <div class="controls-left">
-          <button id="btn-back" class="btn-back" aria-label="Return to scene selection">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="15 18 9 12 15 6"></polyline>
-            </svg>
-            <span>Back</span>
-          </button>
-          <span id="scene-label" class="scene-label"></span>
-        </div>
-
-        <div class="controls-right">
-          <!-- Rain Section -->
-          <div class="audio-section">
-            <div class="section-row">
-              <div class="slider-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
-                </svg>
-              </div>
-              <input type="range" id="rain-volume" min="0" max="1" step="0.01" value="0.7" aria-label="Rain volume">
-            </div>
-            <div class="variant-row" id="rain-variants">
-              <button class="variant-btn active" data-variant="gentle">Gentle</button>
-              <button class="variant-btn" data-variant="heavy">Heavy</button>
-              <button class="variant-btn" data-variant="glass">Glass</button>
-              <button class="variant-btn" data-variant="storm">Storm</button>
-              <button class="variant-btn" data-variant="forest">Forest</button>
-            </div>
+      <!-- Bottom bar: rain + piano variants, volume -->
+      <div class="controls-bottom">
+        <div class="control-group">
+          <label class="control-label">Rain</label>
+          <div id="rain-variants" class="pill-group">
+            <button class="pill" data-rain="gentle">Gentle</button>
+            <button class="pill" data-rain="heavy">Heavy</button>
+            <button class="pill" data-rain="window">Window</button>
+            <button class="pill" data-rain="forest">Forest</button>
+            <button class="pill" data-rain="thunder">Thunder</button>
           </div>
-
-          <!-- Piano Section -->
-          <div class="audio-section">
-            <div class="section-row">
-              <div class="slider-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M9 18V5l12-2v13"/>
-                  <circle cx="6" cy="18" r="3"/>
-                  <circle cx="18" cy="16" r="3"/>
-                </svg>
-              </div>
-              <input type="range" id="piano-volume" min="0" max="1" step="0.01" value="0" aria-label="Piano volume">
-            </div>
-            <div class="variant-row" id="piano-variants">
-              <button class="variant-btn active" data-variant="contemplative">Contemplative</button>
-              <button class="variant-btn" data-variant="jazz">Jazz</button>
-              <button class="variant-btn" data-variant="melancholic">Melancholic</button>
-              <button class="variant-btn" data-variant="ethereal">Ethereal</button>
-              <button class="variant-btn" data-variant="pastoral">Pastoral</button>
-            </div>
+        </div>
+        <div class="control-group">
+          <label class="control-label">Piano</label>
+          <div id="piano-variants" class="pill-group">
+            <button class="pill" data-piano="contemplative">Contemplative</button>
+            <button class="pill" data-piano="jazz">Jazz</button>
+            <button class="pill" data-piano="melancholic">Melancholic</button>
+            <button class="pill" data-piano="ethereal">Ethereal</button>
+            <button class="pill" data-piano="pastoral">Pastoral</button>
+          </div>
+        </div>
+        <div class="control-group volume-group">
+          <div class="volume-control">
+            <label class="control-label">Rain Vol</label>
+            <input type="range" id="rain-volume" min="0" max="100" value="60" class="volume-slider">
+          </div>
+          <div class="volume-control">
+            <label class="control-label">Piano Vol</label>
+            <input type="range" id="piano-volume" min="0" max="100" value="30" class="volume-slider">
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Module scripts -->
-  <script type="module" src="app.js"></script>
-
+  <script src="rain-canvas.js"></script>
+  <script src="audio-engine.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
