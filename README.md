@@ -53,7 +53,7 @@ Each scene loads a looping MP4 (`assets/scene-*.mp4`) with a vignette overlay. C
 
 ## Architecture
 
-`index.html` loads **`audio-system.js`** then **`app.js`** as plain scripts (no bundler, no ES module graph).
+`index.html` loads **`audio-system.js`** then **`app.js`** with a **`?v=`** query on each script so updates are not stuck behind disk cache. Bump those when you change audio logic.
 
 ```
 rain-view/
