@@ -1,221 +1,136 @@
-/* ═══════════════════════════════════════════
-   APP.JS — Main Controller for Rain View v4
-   ═══════════════════════════════════════════ */
-
-(function() {
+/* ═══ Rain View v5 — app.js ═══ */
+(function () {
   'use strict';
 
-  // ── Scene Metadata (v4: bg + frame layers) ──
   const SCENES = {
-    'asian-city': {
-      title: 'Tokyo Evening',
-      bg: 'assets/bg-tokyo.jpg',
-      frame: 'assets/frame-asian-city.webp',
-      thumb: 'assets/scene-asian-city.jpg',
-      defaultRain: 'window',
-      defaultPiano: 'contemplative'
-    },
-    'ny-city': {
-      title: 'New York Night',
-      bg: 'assets/bg-nyc.jpg',
-      frame: 'assets/frame-ny-city.webp',
-      thumb: 'assets/scene-ny-city.jpg',
-      defaultRain: 'heavy',
-      defaultPiano: 'jazz'
-    },
-    'autumn-cabin': {
-      title: 'Autumn Forest',
-      bg: 'assets/bg-autumn.jpg',
-      frame: 'assets/frame-autumn-cabin.webp',
-      thumb: 'assets/scene-autumn-cabin.jpg',
-      defaultRain: 'forest',
-      defaultPiano: 'melancholic'
-    },
-    'japanese-garden': {
-      title: 'Zen Garden',
-      bg: 'assets/bg-garden.jpg',
-      frame: 'assets/frame-japanese-garden.webp',
-      thumb: 'assets/scene-japanese-garden.jpg',
-      defaultRain: 'gentle',
-      defaultPiano: 'ethereal'
-    }
+    tokyo:  { title: 'Tokyo Evening',   video: 'assets/scene-tokyo.mp4',  thumb: 'assets/thumb-tokyo.jpg',  defaultRain: 'window',  defaultPiano: 'contemplative' },
+    nyc:    { title: 'New York Night',   video: 'assets/scene-nyc.mp4',    thumb: 'assets/thumb-nyc.jpg',    defaultRain: 'heavy',   defaultPiano: 'jazz' },
+    autumn: { title: 'Autumn Forest',    video: 'assets/scene-autumn.mp4', thumb: 'assets/thumb-autumn.jpg', defaultRain: 'forest',  defaultPiano: 'melancholic' },
+    garden: { title: 'Zen Garden',       video: 'assets/scene-garden.mp4', thumb: 'assets/thumb-garden.jpg', defaultRain: 'gentle',  defaultPiano: 'ethereal' }
   };
 
-  // ── App State ──
-  let currentScene = null;
-  let controlsTimer = null;
-  let controlsVisible = true;
-  const CONTROLS_TIMEOUT = 4000;
+  // DOM refs
+  const splash    = document.getElementById('splash');
+  const sceneEl   = document.getElementById('scene');
+  const vid       = document.getElementById('vid');
+  const titleEl   = document.getElementById('title');
+  const ctrl      = document.getElementById('ctrl');
+  const backBtn   = document.getElementById('back');
+  const rainVol   = document.getElementById('rain-vol');
+  const pianoVol  = document.getElementById('piano-vol');
+  const rainPills = document.getElementById('rain-pills');
+  const pianoPills = document.getElementById('piano-pills');
 
-  // ── Instances ──
-  const rainCanvas = new RainCanvas();
-  const audioEngine = new AudioEngine();
-  audioEngine.preload();
+  let audio = null;
+  let current = null;
+  let idleTimer = null;
 
-  // ── DOM References ──
-  const splash = document.getElementById('splash');
-  const sceneView = document.getElementById('scene-view');
-  const sceneBg = document.getElementById('scene-bg');
-  const sceneFrame = document.getElementById('scene-frame');
-  const sceneTitle = document.getElementById('scene-title');
-  const controls = document.getElementById('controls');
-  const btnBack = document.getElementById('btn-back');
-  const rainVolume = document.getElementById('rain-volume');
-  const pianoVolume = document.getElementById('piano-volume');
+  function init() {
+    audio = new AudioEngine();
+    audio.preload();
 
-  // ── Scene Card Click ──
-  document.querySelectorAll('.scene-card').forEach(card => {
-    card.addEventListener('click', () => {
-      const sceneId = card.dataset.scene;
-      enterScene(sceneId);
+    // Scene cards
+    document.querySelectorAll('.card').forEach(c => {
+      c.addEventListener('click', () => enterScene(c.dataset.scene));
     });
-  });
 
-  // ── Enter Scene ──
-  function enterScene(sceneId) {
-    const scene = SCENES[sceneId];
-    if (!scene) return;
-    currentScene = sceneId;
+    // Back
+    backBtn.addEventListener('click', exitScene);
 
-    // Start audio system on first interaction
-    audioEngine.start();
+    // Volume
+    rainVol.addEventListener('input', e => audio.setRainVolume(+e.target.value));
+    pianoVol.addEventListener('input', e => audio.setPianoVolume(+e.target.value));
 
-    // Set layer images (bg photograph + foreground frame)
-    sceneBg.src = scene.bg;
-    sceneBg.alt = scene.title;
-    sceneFrame.src = scene.frame;
-    sceneFrame.alt = '';
-    sceneTitle.textContent = scene.title;
+    // Rain variant pills
+    rainPills.addEventListener('click', e => {
+      const pill = e.target.closest('.pill');
+      if (!pill) return;
+      rainPills.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      audio.setRainVariant(pill.dataset.v);
+    });
 
-    // Transition: hide splash, show scene
-    splash.classList.add('leaving');
-    setTimeout(() => {
-      splash.classList.add('hidden');
-      sceneView.classList.remove('hidden');
-      sceneView.classList.add('entering');
+    // Piano variant pills
+    pianoPills.addEventListener('click', e => {
+      const pill = e.target.closest('.pill');
+      if (!pill) return;
+      pianoPills.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      audio.setPianoVariant(pill.dataset.v);
+    });
 
-      // Start rain canvas
-      rainCanvas.start(sceneId);
+    // Auto-hide
+    setupAutoHide();
 
-      // Set default audio variants
-      setActiveRainPill(scene.defaultRain);
-      setActivePianoPill(scene.defaultPiano);
-      audioEngine.setRainVariant(scene.defaultRain);
-      audioEngine.setPianoVariant(scene.defaultPiano);
-
-      // Apply volume from sliders
-      audioEngine.setRainVolume(rainVolume.value / 100);
-      audioEngine.setPianoVolume(pianoVolume.value / 100);
-
-      // Start control auto-hide
-      showControls();
-      startControlsTimer();
-    }, 600);
+    // Keyboard
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && current) exitScene(); });
   }
 
-  // ── Back to Splash ──
-  btnBack.addEventListener('click', () => {
-    // Stop everything
-    rainCanvas.stop();
-    audioEngine.stopAll();
-    currentScene = null;
+  function enterScene(id) {
+    const s = SCENES[id];
+    if (!s) return;
+    current = s;
+
+    // Video
+    vid.src = s.video;
+    vid.play().catch(() => {});
+    titleEl.textContent = s.title;
+
+    // Set default variants
+    setActivePill(rainPills, s.defaultRain);
+    setActivePill(pianoPills, s.defaultPiano);
+    rainVol.value = 0.7;
+    pianoVol.value = 0;
 
     // Transition
-    sceneView.classList.add('hidden');
-    sceneView.classList.remove('entering');
-    splash.classList.remove('hidden', 'leaving');
+    splash.classList.add('hidden');
+    sceneEl.classList.remove('hidden');
 
-    clearControlsTimer();
-  });
+    // Audio
+    audio.start();
+    audio.setRainVolume(0.7);
+    audio.setPianoVolume(0);
+    audio.setRainVariant(s.defaultRain);
+    audio.setPianoVariant(s.defaultPiano);
 
-  // ── Rain Variant Pills ──
-  document.querySelectorAll('[data-rain]').forEach(pill => {
-    pill.addEventListener('click', () => {
-      const variant = pill.dataset.rain;
-      setActiveRainPill(variant);
-      audioEngine.setRainVariant(variant);
+    showCtrl();
+  }
+
+  function exitScene() {
+    vid.pause();
+    vid.src = '';
+    audio.stopAll();
+    sceneEl.classList.add('hidden');
+    setTimeout(() => splash.classList.remove('hidden'), 100);
+    current = null;
+  }
+
+  function setActivePill(container, value) {
+    container.querySelectorAll('.pill').forEach(p => {
+      p.classList.toggle('active', p.dataset.v === value);
     });
-  });
-
-  // ── Piano Variant Pills ──
-  document.querySelectorAll('[data-piano]').forEach(pill => {
-    pill.addEventListener('click', () => {
-      const variant = pill.dataset.piano;
-      setActivePianoPill(variant);
-      audioEngine.setPianoVariant(variant);
-    });
-  });
-
-  // ── Volume Sliders ──
-  rainVolume.addEventListener('input', () => {
-    audioEngine.setRainVolume(rainVolume.value / 100);
-  });
-
-  pianoVolume.addEventListener('input', () => {
-    audioEngine.setPianoVolume(pianoVolume.value / 100);
-  });
-
-  // ── Pill Active State Helpers ──
-  function setActiveRainPill(variant) {
-    document.querySelectorAll('[data-rain]').forEach(p => p.classList.remove('active'));
-    const pill = document.querySelector(`[data-rain="${variant}"]`);
-    if (pill) pill.classList.add('active');
   }
 
-  function setActivePianoPill(variant) {
-    document.querySelectorAll('[data-piano]').forEach(p => p.classList.remove('active'));
-    const pill = document.querySelector(`[data-piano="${variant}"]`);
-    if (pill) pill.classList.add('active');
-  }
-
-  // ── Controls Auto-Hide ──
-  function showControls() {
-    controls.classList.remove('auto-hidden');
-    controlsVisible = true;
-  }
-
-  function hideControls() {
-    controls.classList.add('auto-hidden');
-    controlsVisible = false;
-  }
-
-  function startControlsTimer() {
-    clearControlsTimer();
-    controlsTimer = setTimeout(hideControls, CONTROLS_TIMEOUT);
-  }
-
-  function clearControlsTimer() {
-    if (controlsTimer) {
-      clearTimeout(controlsTimer);
-      controlsTimer = null;
+  // Auto-hide controls
+  function setupAutoHide() {
+    function reset() {
+      if (!current) return;
+      showCtrl();
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(hideCtrl, 4000);
     }
+    document.addEventListener('mousemove', reset);
+    document.addEventListener('touchstart', reset, { passive: true });
+
+    ctrl.addEventListener('mouseenter', () => clearTimeout(idleTimer));
+    ctrl.addEventListener('mouseleave', () => { if (current) idleTimer = setTimeout(hideCtrl, 4000); });
+    ctrl.addEventListener('touchstart', () => clearTimeout(idleTimer), { passive: true });
+    ctrl.addEventListener('touchend', () => { if (current) idleTimer = setTimeout(hideCtrl, 4000); }, { passive: true });
   }
 
-  // Show controls on mouse move / touch
-  function onActivity() {
-    if (!currentScene) return;
-    showControls();
-    startControlsTimer();
-  }
+  function showCtrl() { ctrl.classList.remove('hidden'); }
+  function hideCtrl() { ctrl.classList.add('hidden'); }
 
-  sceneView.addEventListener('mousemove', onActivity);
-  sceneView.addEventListener('touchstart', onActivity, { passive: true });
-  sceneView.addEventListener('click', (e) => {
-    // If clicking on the scene area (not controls), toggle controls
-    if (e.target === sceneView || e.target.closest('.scene-bg-layer') || e.target.id === 'rain-canvas' || e.target.closest('.scene-frame-layer') || e.target.closest('.scene-vignette')) {
-      if (controlsVisible) {
-        hideControls();
-        clearControlsTimer();
-      } else {
-        onActivity();
-      }
-    }
-  });
-
-  // Pause auto-hide when hovering over controls
-  controls.addEventListener('mouseenter', clearControlsTimer);
-  controls.addEventListener('mouseleave', () => {
-    if (currentScene) startControlsTimer();
-  });
-
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
 })();
