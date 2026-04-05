@@ -14,7 +14,7 @@
    * Bump when any MP3 under assets/ is replaced. Browsers and CDNs cache
    * audio URLs by path; a query string forces a fresh fetch (same file name).
    */
-  var RV_AUDIO_ASSET_VER = '7';
+  var RV_AUDIO_ASSET_VER = '8';
 
   function withAssetVer(path) {
     var sep = path.indexOf('?') >= 0 ? '&' : '?';

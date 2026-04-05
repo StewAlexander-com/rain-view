@@ -113,7 +113,7 @@ python3 -m http.server 8000
 
 ## Credits
 
-- **Rain audio** — MP3 files in `assets/`.
+- **Rain audio** — MP3 files in `assets/`. **Heavy** rain uses Mixkit’s “Heavy storm rain loop” (see `AUDIO-CREDITS.txt`); other rain loops are unchanged.
 - **Scene videos** — MP4 files in `assets/`.
 - **Piano** — Kevin MacLeod (incompetech.com), CC BY 4.0; titles and filenames in `AUDIO-CREDITS.txt`.
 - **Fonts** — [Cormorant Garamond](https://fonts.google.com/specimen/Cormorant+Garamond) and [Inter](https://fonts.google.com/specimen/Inter) via Google Fonts.

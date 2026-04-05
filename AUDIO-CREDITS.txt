@@ -1,13 +1,13 @@
-Rain View — piano music credits
-================================
+Rain View — audio credits
+==========================
 
-All piano tracks below are by Kevin MacLeod (incompetech.com), licensed under
+Piano (Kevin MacLeod / incompetech.com)
+---------------------------------------
 Creative Commons Attribution 4.0 International (CC BY 4.0).
 https://creativecommons.org/licenses/by/4.0/
-
 License page (Incompetech): https://incompetech.com/music/royalty-free/licenses/
 
-Scene / UI variant   File                         Incompetech title
+Scene / UI variant   File                         Title
 --------------------   --------------------------   -----------------
 Contemplative          piano-contemplative.mp3      Dream Culture
 Jazz                   piano-jazz.mp3               Jazz Brunch
@@ -15,9 +15,22 @@ Melancholic            piano-melancholic.mp3        Sad Trio
 Ethereal               piano-ethereal.mp3           Floating Cities
 Pastoral               piano-pastoral.mp3           Carefree
 
-Required attribution (example):
+Example attribution:
 "Carefree" Kevin MacLeod (incompetech.com)
 Licensed under Creative Commons: By Attribution 4.0 License
 http://creativecommons.org/licenses/by/4.0/
 
-Rain soundscapes (assets/rain-*.mp3) are documented separately in the README if applicable.
+
+Rain — heavy (Mixkit)
+---------------------
+File: assets/rain-heavy.mp3
+
+Source: Mixkit sound effect “Heavy storm rain loop” (ID 2393).
+https://mixkit.co/free-sound-effects/rain/
+
+Licensed under the Mixkit Sound Effects Free License:
+https://mixkit.co/license/#sfxFree
+
+Other rain MP3s in assets/ (gentle, window, forest, thunder) are unchanged from
+the original Rain View bundle; add credits here if you replace them.
+
