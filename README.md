@@ -43,8 +43,8 @@ Each scene loads a looping MP4 (`assets/scene-*.mp4`) with a vignette overlay. C
 
 ## Features
 
-- **Five rain soundscapes** — Gentle, Heavy, Window, Forest, and Thunder (`assets/rain-*.mp3`). Switching variants crossfades: previous track fades out (~600 ms), new track fades in (~800 ms), ease-in-out stepped ramp (`audio-engine.js`).
-- **Five piano loops** — Real recorded tracks (`assets/piano-*.mp3`): Contemplative, Jazz, Melancholic, Ethereal, Pastoral. Variant switches use the same crossfade as rain. Entering a scene starts rain at volume **0.7** and piano at **0** until you raise the piano slider (`app.js`). Attribution: see `AUDIO-CREDITS.txt` (CC BY 4.0, Kevin MacLeod / incompetech.com).
+- **Five rain soundscapes** — Gentle, Heavy, Window, Forest, and Thunder (`assets/rain-*.mp3`). Switching variants stops the previous loop immediately and fades in the new one (~650 ms, `requestAnimationFrame`).
+- **Five piano loops** — Real recorded tracks (`assets/piano-*.mp3`): Contemplative, Jazz, Melancholic, Ethereal, Pastoral. Same behavior as rain. Entering a scene starts rain at volume **0.7** and piano at **0** until you raise the piano slider (`app.js`). Attribution: see `AUDIO-CREDITS.txt` (CC BY 4.0, Kevin MacLeod / incompetech.com).
 - **Independent volume** — Separate sliders for rain and piano.
 - **Auto-hiding controls** — Control panel hides after **4 seconds** of inactivity; mouse move or touch shows it again (`app.js`).
 - **PWA-ready** — `manifest.json`, icons under `icons/`, mobile meta tags.
@@ -53,15 +53,14 @@ Each scene loads a looping MP4 (`assets/scene-*.mp4`) with a vignette overlay. C
 
 ## Architecture
 
-`index.html` loads **`audio-crossfade.js`**, **`audio-engine.js`**, then **`app.js`** as plain scripts (no bundler, no ES module graph).
+`index.html` loads **`audio-system.js`** then **`app.js`** as plain scripts (no bundler, no ES module graph).
 
 ```
 rain-view/
 ├── index.html          # Splash + scene shell, control panel, script tags
 ├── style.css           # Layout, glass UI, responsive rules
 ├── app.js              # SCENES map, enter/exit, pills, auto-hide, Escape
-├── audio-crossfade.js  # LoopCrossfadeLayer: cancelable crossfades per <audio>
-├── audio-engine.js     # Wires two layers (rain + piano) for app.js
+├── audio-system.js     # Ambient loops: rain + piano, one script
 ├── AUDIO-CREDITS.txt   # Piano track titles and CC BY attribution
 ├── manifest.json
 ├── screenshots/        # Images for this README (GitHub rendering)
@@ -74,10 +73,10 @@ rain-view/
 └── icons/              # PWA / favicon / OG assets
 ```
 
-### Audio (`audio-crossfade.js` + `audio-engine.js`)
+### Audio (`audio-system.js`)
 
-- **`LoopCrossfadeLayer`** — Holds one `<audio>` per variant (loop + preload). Switching variants fades the outgoing track out and the incoming track in. **Each element can only have one active fade**; starting a new fade cancels the previous timer on that element so overlapping `setInterval` ramps cannot fight (which caused brief sound or silence).
-- **`AudioEngine`** — Two layers (rain + piano). Volume changes cancel the current track’s fade and apply immediately so the sliders stay authoritative. `stopAll()` cancels fades on every element in both layers.
+- **`AmbientLoopLayer`** (internal) — One `<audio>` per variant, attached to a hidden host in the document. **Outgoing** track: volume 0 + pause immediately (no overlapping fade-out timers). **Incoming**: `play()` with a short retry, then **fade-in only** via `requestAnimationFrame`, gated by a generation counter so rapid switches or slider moves do not leave stale state.
+- **`AudioEngine`** — Two layers (rain + piano). `setVolume` bumps the generation and applies the level immediately. **Per-track `error`** handler marks the node; **visibility** recovery tries `play()` again when returning from a background tab if the user had volume up.
 
 ## Run locally
 
