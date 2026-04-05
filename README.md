@@ -4,6 +4,8 @@
 
 An ambient rain simulator with four cinematic looping scenes, five rain soundscapes, and a generative piano engine. Built with vanilla HTML, CSS, and JavaScript. No frameworks, no build tools.
 
+This **`README.md` at the root of [StewAlexander-com/rain-view](https://github.com/StewAlexander-com/rain-view)** is the canonical project documentation. Edit this file in the repository (not a duplicate elsewhere) so GitHub and clones stay in sync.
+
 [**Live demo**](https://stewalexander-com.github.io/rain-view/)
 
 ---
