@@ -65,9 +65,10 @@
     setRainVariant(name) {
       if (this.currentRainName === name) return;
 
-      if (this.currentRainEl) {
-        this._fadeAudio(this.currentRainEl, 0, 600, () => {
-          this.currentRainEl.pause();
+      const outgoingRain = this.currentRainEl;
+      if (outgoingRain) {
+        this._fadeAudio(outgoingRain, 0, 600, () => {
+          outgoingRain.pause();
         });
       }
 
@@ -94,9 +95,10 @@
     setPianoVariant(name) {
       if (this.currentPianoName === name) return;
 
-      if (this.currentPianoEl) {
-        this._fadeAudio(this.currentPianoEl, 0, 600, () => {
-          this.currentPianoEl.pause();
+      const outgoingPiano = this.currentPianoEl;
+      if (outgoingPiano) {
+        this._fadeAudio(outgoingPiano, 0, 600, () => {
+          outgoingPiano.pause();
         });
       }
 
