@@ -43,7 +43,7 @@ Each scene loads a looping MP4 (`assets/scene-*.mp4`) with a vignette overlay. C
 
 ## Features
 
-- **Five rain soundscapes** — Gentle, Heavy, Window, Forest, and Thunder (`assets/rain-*.mp3`). Switching variants stops the previous loop immediately and fades in the new one (~650 ms, `requestAnimationFrame`).
+- **Five rain soundscapes** — Gentle, Heavy, Window, Forest, and Thunder (`assets/rain-*.mp3`). Switching variants stops the previous loop immediately; **rain** jumps to the new level at once (no volume ramp). **Piano** still uses a short fade-in when changing variants.
 - **Five piano loops** — Real recorded tracks (`assets/piano-*.mp3`): Contemplative, Jazz, Melancholic, Ethereal, Pastoral. Same behavior as rain. Entering a scene starts rain at volume **0.7** and piano at **0** until you raise the piano slider (`app.js`). Attribution: see `AUDIO-CREDITS.txt` (CC BY 4.0, Kevin MacLeod / incompetech.com).
 - **Independent volume** — Separate sliders for rain and piano.
 - **Play / pause** — Each row has a button that pauses that layer (icon switches to play) and resumes from the same position in the loop (`audio-system.js` + `app.js`).
@@ -86,7 +86,7 @@ rain-view/
 
 ### Audio (`audio-system.js`)
 
-- **`AmbientLoopLayer`** (internal) — One `<audio>` per variant, attached to a hidden host in the document. **Outgoing** track: volume 0 + pause immediately (no overlapping fade-out timers). **Incoming**: `play()` with a short retry, then **fade-in only** via `requestAnimationFrame`, gated by a generation counter so rapid switches or slider moves do not leave stale state.
+- **`AmbientLoopLayer`** (internal) — One `<audio>` per variant, attached to a hidden host in the document. **Outgoing** track: volume 0 + pause immediately. **Incoming**: `play()` with a short retry, then either **instant** volume (rain layer) or **fade-in** via `requestAnimationFrame` (piano layer), gated by a generation counter.
 - **`AudioEngine`** — Two layers (rain + piano). `setVolume` bumps the generation and applies the level immediately. **User pause** skips auto-resume on tab visibility and keeps variant switches from auto-playing until the user hits play. **Per-track `error`** handler marks the node; **visibility** recovery tries `play()` again when returning from a background tab if the user had volume up and did not pause.
 
 ## Run locally
@@ -113,7 +113,7 @@ python3 -m http.server 8000
 
 ## Credits
 
-- **Rain audio** — MP3 files in `assets/`. **Heavy** rain uses Mixkit’s “Heavy storm rain loop” (see `AUDIO-CREDITS.txt`); other rain loops are unchanged.
+- **Rain audio** — MP3 files in `assets/`. **Heavy** rain uses Mixkit’s “Rain long loop” for a steady bed (see `AUDIO-CREDITS.txt`); rain variant switches apply **without** a volume ramp so looping is not confused with UI fades. Other rain loops are unchanged.
 - **Scene videos** — MP4 files in `assets/`.
 - **Piano** — Kevin MacLeod (incompetech.com), CC BY 4.0; titles and filenames in `AUDIO-CREDITS.txt`.
 - **Fonts** — [Cormorant Garamond](https://fonts.google.com/specimen/Cormorant+Garamond) and [Inter](https://fonts.google.com/specimen/Inter) via Google Fonts.

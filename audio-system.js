@@ -14,7 +14,7 @@
    * Bump when any MP3 under assets/ is replaced. Browsers and CDNs cache
    * audio URLs by path; a query string forces a fresh fetch (same file name).
    */
-  var RV_AUDIO_ASSET_VER = '8';
+  var RV_AUDIO_ASSET_VER = '9';
 
   function withAssetVer(path) {
     var sep = path.indexOf('?') >= 0 ? '&' : '?';
@@ -263,7 +263,9 @@
         forest: 'assets/rain-forest.mp3',
         thunder: 'assets/rain-thunder.mp3'
       }),
-      { fadeInMs: 650 }
+      // Rain: instant level on variant change (no volume ramp). Ramps were easy to confuse
+      // with loop gaps; piano keeps a short fade for musical crossfade.
+      { fadeInMs: 0 }
     );
 
     this.pianoLayer = new AmbientLoopLayer(

@@ -25,7 +25,9 @@ Rain — heavy (Mixkit)
 ---------------------
 File: assets/rain-heavy.mp3
 
-Source: Mixkit sound effect “Heavy storm rain loop” (ID 2393).
+Source: Mixkit sound effect “Rain long loop” (ID 2394) — long, steady rain bed
+without the short-loop swells that sounded like fade-out / fade-in when looped.
+
 https://mixkit.co/free-sound-effects/rain/
 
 Licensed under the Mixkit Sound Effects Free License:
