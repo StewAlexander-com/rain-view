@@ -150,6 +150,10 @@
     }
     document.addEventListener('mousemove', reset);
     document.addEventListener('touchstart', reset, { passive: true });
+    // Desktop: clicks on the video do not fire mousemove — without this, the panel
+    // (including play/pause) stays at opacity 0 after auto-hide.
+    document.addEventListener('click', reset);
+    document.addEventListener('pointerdown', reset, { passive: true });
 
     ctrl.addEventListener('mouseenter', () => clearTimeout(idleTimer));
     ctrl.addEventListener('mouseleave', () => { if (current) idleTimer = setTimeout(hideCtrl, 4000); });

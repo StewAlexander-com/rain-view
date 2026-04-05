@@ -62,8 +62,9 @@ Browsers cache JS and MP3s aggressively. After changing assets or audio code:
 
 1. Bump **`RV_AUDIO_ASSET_VER`** in `audio-system.js` (forces new `…mp3?v=…` URLs).
 2. Bump the **`?v=`** on **both** `<script>` tags in `index.html` (forces new `audio-system.js` / `app.js`; otherwise old JS may never load the new query strings).
+3. Bump **`?v=`** on the **`style.css`** `<link>` when you change layout or control styles.
 
-When testing in Chrome DevTools, enable **Disable cache** on the Network tab so you are not fooled by disk cache.
+When testing in Chrome DevTools, enable **Disable cache** on the Network tab so you are not fooled by disk cache. After auto-hide, **click or tap the scene** to bring the control panel (and play/pause buttons) back — moving the mouse alone is not required on desktop.
 
 ```
 rain-view/

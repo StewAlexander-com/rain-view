@@ -64,8 +64,8 @@ body{min-height:100dvh;width:100vw;overflow:hidden;font-family:var(--font-body);
 .pill.active{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.22);color:rgba(255,255,255,.88)}
 
 .vol-row{display:flex;align-items:center;gap:.5rem}
-.btn-playpause{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;border:none;border-radius:8px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.72);cursor:pointer;transition:background .2s,color .2s}
-.btn-playpause:hover{background:rgba(255,255,255,.14);color:rgba(255,255,255,.95)}
+.btn-playpause{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;padding:0;border:1px solid rgba(255,255,255,.2);border-radius:10px;background:rgba(0,0,0,.35);color:rgba(255,255,255,.9);cursor:pointer;transition:background .2s,color .2s,box-shadow .2s;box-shadow:0 2px 10px rgba(0,0,0,.35)}
+.btn-playpause:hover{background:rgba(0,0,0,.5);color:#fff;border-color:rgba(255,255,255,.28)}
 .btn-playpause .pp-icon{display:block}
 .btn-playpause .pp-play{display:none}
 .btn-playpause.is-paused .pp-pause{display:none}
