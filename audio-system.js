@@ -1,6 +1,7 @@
 /* ═══════════════════════════════════════════
    Rain View — ambient audio (rain + piano)
-   Fetch→blob loops; Web Audio Gain for volume (iOS ignores media.volume).
+   Fetch→blob; twin <audio> per track (pre-started + crossfade) to avoid loop
+   gaps; Web Audio gain chain for volume (iOS ignores media.volume).
    ═══════════════════════════════════════════ */
 
 (function (global) {
@@ -14,7 +15,7 @@
    * Bump when any MP3 under assets/ is replaced. Browsers and CDNs cache
    * audio URLs by path; a query string forces a fresh fetch (same file name).
    */
-  var RV_AUDIO_ASSET_VER = '11';
+  var RV_AUDIO_ASSET_VER = '12';
 
   function withAssetVer(path) {
     var sep = path.indexOf('?') >= 0 ? '&' : '?';
@@ -66,12 +67,29 @@
     try {
       el.volume = 1;
       el._rvMES = layer._audioCtx.createMediaElementSource(el);
-      el._rvMES.connect(layer._gainNode);
+      el._rvElementGain = layer._audioCtx.createGain();
+      el._rvElementGain.gain.value = 1;
+      el._rvMES.connect(el._rvElementGain);
+      el._rvElementGain.connect(layer._gainNode);
       return true;
     } catch (e) {
       el._rvMESFailed = true;
       return false;
     }
+  }
+
+  function applyElementOutputGain(el, value, audioCtx) {
+    value = clamp01(value);
+    if (!el) return;
+    if (el._rvElementGain && audioCtx) {
+      try {
+        var t = audioCtx.currentTime;
+        el._rvElementGain.gain.cancelScheduledValues(t);
+        el._rvElementGain.gain.setValueAtTime(value, t);
+        return;
+      } catch (e) {}
+    }
+    el.volume = value;
   }
 
   function waitUntilPlayable(el) {
@@ -93,6 +111,16 @@
       el.addEventListener('canplaythrough', finished, { once: true });
       el.addEventListener('loadeddata', fallback, { once: true });
     });
+  }
+
+  function revokeSharedBlobUrl(elA, elB) {
+    var u = elA && elA._rvBlobUrl;
+    if (!u) return;
+    if (elB && elB._rvBlobUrl === u) elB._rvBlobUrl = null;
+    elA._rvBlobUrl = null;
+    try {
+      URL.revokeObjectURL(u);
+    } catch (e) {}
   }
 
   function fetchWholeFileIntoAudio(audioEl, url) {
@@ -117,6 +145,36 @@
         audioEl.src = url;
         audioEl.load();
         return waitUntilPlayable(audioEl);
+      });
+  }
+
+  /**
+   * One fetch/blob URL for two elements — both fully buffered before either plays,
+   * so the idle twin can start instantly at loop boundaries.
+   */
+  function fetchWholeFileIntoDualAudio(elA, elB, url) {
+    return fetch(url, { credentials: 'same-origin' })
+      .then(function (res) {
+        if (!res.ok) throw new Error(String(res.status));
+        return res.blob();
+      })
+      .then(function (blob) {
+        revokeSharedBlobUrl(elA, elB);
+        var objUrl = URL.createObjectURL(blob);
+        elA._rvBlobUrl = objUrl;
+        elB._rvBlobUrl = objUrl;
+        elA.src = objUrl;
+        elB.src = objUrl;
+        elA.load();
+        elB.load();
+        return Promise.all([waitUntilPlayable(elA), waitUntilPlayable(elB)]);
+      })
+      .catch(function () {
+        elA.src = url;
+        elB.src = url;
+        elA.load();
+        elB.load();
+        return Promise.all([waitUntilPlayable(elA), waitUntilPlayable(elB)]);
       });
   }
 
@@ -194,8 +252,26 @@
     requestAnimationFrame(frame);
   }
 
+  function pauseAndResetTwin(el) {
+    if (!el) return;
+    try {
+      el.pause();
+      el.currentTime = 0;
+    } catch (e) {}
+    var tw = el._rvTwin;
+    if (tw) {
+      try {
+        tw.pause();
+        tw.currentTime = 0;
+      } catch (e) {}
+    }
+  }
+
   /**
    * One looping layer (rain or piano).
+   * Each variant uses twin <audio> elements on one blob URL: the idle twin is
+   * fully buffered and started before the active clip ends, then crossfaded —
+   * avoids native loop seek gaps.
    */
   function AmbientLoopLayer(nameToSrc, options) {
     var o = options || {};
@@ -211,32 +287,163 @@
     this.currentEl = null;
     this._volume = 1;
     this._paused = false;
+    this._loopMonitorRaf = null;
+    this._loopHandoffScheduled = false;
 
     var self = this;
     var keys = Object.keys(nameToSrc);
     for (var i = 0; i < keys.length; i++) {
       (function (name, url) {
         var a = document.createElement('audio');
-        a.loop = true;
+        var b = document.createElement('audio');
+        a.loop = false;
+        b.loop = false;
         a.preload = 'auto';
+        b.preload = 'auto';
         a.volume = 1;
+        b.volume = 1;
         a.setAttribute('playsinline', '');
+        b.setAttribute('playsinline', '');
         a.playsInline = true;
+        b.playsInline = true;
         a.addEventListener('error', function () {
           try {
             a.setAttribute('data-rv-error', '1');
           } catch (e) {}
         });
-        a._rvLoad = fetchWholeFileIntoAudio(a, url);
+        b.addEventListener('error', function () {
+          try {
+            b.setAttribute('data-rv-error', '1');
+          } catch (e) {}
+        });
+        a._rvTwin = b;
+        b._rvTwin = a;
+        var loadP = fetchWholeFileIntoDualAudio(a, b, url);
+        a._rvLoad = loadP;
+        b._rvLoad = loadP;
         self.audios[name] = a;
       })(keys[i], nameToSrc[keys[i]]);
     }
   }
 
+  AmbientLoopLayer.prototype._getLoopLeadSec = function (duration) {
+    var lead = 0.3;
+    if (duration > 0 && isFinite(duration)) {
+      lead = Math.min(lead, Math.max(0.09, duration * 0.22));
+    }
+    return lead;
+  };
+
+  AmbientLoopLayer.prototype._stopLoopMonitor = function () {
+    if (this._loopMonitorRaf != null) {
+      cancelAnimationFrame(this._loopMonitorRaf);
+      this._loopMonitorRaf = null;
+    }
+  };
+
+  AmbientLoopLayer.prototype._startLoopMonitor = function () {
+    var self = this;
+    self._stopLoopMonitor();
+    function tick() {
+      self._loopMonitorRaf = requestAnimationFrame(tick);
+      if (self._paused || self._volume < 0.001) return;
+      var el = self.currentEl;
+      if (!el || el.paused) return;
+      var twin = el._rvTwin;
+      if (!twin) return;
+      var d = el.duration;
+      if (!d || !isFinite(d)) return;
+      if (self._loopHandoffScheduled) return;
+      if (d - el.currentTime > self._getLoopLeadSec(d)) return;
+      self._loopHandoffScheduled = true;
+      self._executeLoopHandoff(el, twin);
+    }
+    self._loopMonitorRaf = requestAnimationFrame(tick);
+  };
+
+  AmbientLoopLayer.prototype._executeLoopHandoff = function (fromEl, toEl) {
+    var self = this;
+    var gen = self._generation;
+    var ctx = self._audioCtx;
+    var crossfadeMs = 56;
+    var u = self._volume;
+
+    toEl.currentTime = 0;
+    resumeActiveEngineCtx();
+    tryConnectMES(self, toEl);
+
+    function abortTwinPlay() {
+      try {
+        toEl.pause();
+      } catch (e) {}
+      self._loopHandoffScheduled = false;
+    }
+
+    function ampFrom(mult) {
+      if (ctx && fromEl._rvElementGain && !fromEl._rvMESFailed) {
+        fromEl.volume = 1;
+        applyElementOutputGain(fromEl, mult, ctx);
+      } else {
+        fromEl.volume = u * mult;
+      }
+    }
+
+    function ampTo(mult) {
+      if (ctx && toEl._rvElementGain && !toEl._rvMESFailed) {
+        toEl.volume = 1;
+        applyElementOutputGain(toEl, mult, ctx);
+      } else {
+        toEl.volume = u * mult;
+      }
+    }
+
+    ampFrom(1);
+    ampTo(0);
+
+    safePlay(toEl).then(function (ok) {
+      if (gen !== self._generation || self.currentEl !== fromEl) {
+        abortTwinPlay();
+        return;
+      }
+      if (!ok) {
+        self._loopHandoffScheduled = false;
+        try {
+          fromEl.loop = true;
+        } catch (e) {}
+        return;
+      }
+      var t0 = performance.now();
+      function cf(now) {
+        if (gen !== self._generation || self.currentEl !== fromEl) {
+          abortTwinPlay();
+          return;
+        }
+        var p = Math.min(1, (now - t0) / crossfadeMs);
+        ampFrom(1 - p);
+        ampTo(p);
+        if (p < 1) {
+          requestAnimationFrame(cf);
+        } else {
+          try {
+            fromEl.pause();
+          } catch (e) {}
+          fromEl.currentTime = 0;
+          ampFrom(1);
+          ampTo(1);
+          self.currentEl = toEl;
+          self._loopHandoffScheduled = false;
+        }
+      }
+      requestAnimationFrame(cf);
+    });
+  };
+
   AmbientLoopLayer.prototype.appendTo = function (parentEl) {
     for (var k in this.audios) {
       if (!Object.prototype.hasOwnProperty.call(this.audios, k)) continue;
-      parentEl.appendChild(this.audios[k]);
+      var primary = this.audios[k];
+      parentEl.appendChild(primary);
+      if (primary._rvTwin) parentEl.appendChild(primary._rvTwin);
     }
   };
 
@@ -246,24 +453,39 @@
     var incoming = this.audios[name];
     if (!incoming) return;
 
+    this._stopLoopMonitor();
+    this._loopHandoffScheduled = false;
+
     this._generation++;
     var gen = this._generation;
 
     var outgoing = this.currentEl;
     if (outgoing && outgoing !== incoming) {
-      outgoing.pause();
+      pauseAndResetTwin(outgoing);
       if (!this._gainNode) outgoing.volume = 0;
     }
 
     this.currentName = name;
     this.currentEl = incoming;
     incoming.currentTime = 0;
+    if (incoming._rvTwin) {
+      try {
+        incoming._rvTwin.pause();
+        incoming._rvTwin.currentTime = 0;
+      } catch (e) {}
+    }
+    if (this._audioCtx && incoming._rvTwin) {
+      applyElementOutputGain(incoming, 1, this._audioCtx);
+      applyElementOutputGain(incoming._rvTwin, 1, this._audioCtx);
+    }
 
     if (this._gainNode) {
       incoming.volume = 1;
+      if (incoming._rvTwin) incoming._rvTwin.volume = 1;
       applyGain(this._gainNode, 0, this._audioCtx);
     } else {
       incoming.volume = 0;
+      if (incoming._rvTwin) incoming._rvTwin.volume = 0;
     }
 
     var self = this;
@@ -279,12 +501,12 @@
           incoming.volume = targetVol;
         }
         incoming.pause();
+        if (incoming._rvTwin) incoming._rvTwin.pause();
         return;
       }
       /* Volume ~0: never call play() — avoids full-level bleed when MES fails on iOS. */
       if (targetVol < 0.001) {
-        incoming.pause();
-        incoming.currentTime = 0;
+        pauseAndResetTwin(incoming);
         if (self._gainNode && !incoming._rvMESFailed) {
           applyGain(self._gainNode, 0, self._audioCtx);
         } else {
@@ -306,6 +528,7 @@
           }
           return;
         }
+        self._startLoopMonitor();
         self._fadeStamp++;
         var fadeId = self._fadeStamp;
         fadeLayerVolume(
@@ -336,15 +559,12 @@
     /* iOS ignores media.volume when not routed through Web Audio — silence every
        track in this layer when muted so nothing leaks at full device level. */
     if (this._volume < 0.001) {
+      this._stopLoopMonitor();
+      this._loopHandoffScheduled = false;
       for (var mk in this.audios) {
         if (!Object.prototype.hasOwnProperty.call(this.audios, mk)) continue;
         var ael = this.audios[mk];
-        if (ael) {
-          try {
-            ael.pause();
-            ael.currentTime = 0;
-          } catch (e) {}
-        }
+        if (ael) pauseAndResetTwin(ael);
       }
     }
     if (this.currentEl && this.currentEl._rvMESFailed) {
@@ -352,7 +572,10 @@
       if (this._volume > 0.001 && this.currentEl.paused && !this._paused) {
         var self = this;
         safePlay(this.currentEl).then(function (ok) {
-          if (ok && self.currentEl) self.currentEl.volume = self._volume;
+          if (ok && self.currentEl) {
+            self.currentEl.volume = self._volume;
+            self._startLoopMonitor();
+          }
         });
       }
       return;
@@ -376,7 +599,10 @@
       tryConnectMES(this, this.currentEl);
       var self2 = this;
       safePlay(this.currentEl).then(function (ok) {
-        if (ok && self2.currentEl) self2.applyVolumeToOutputs();
+        if (ok && self2.currentEl) {
+          self2.applyVolumeToOutputs();
+          self2._startLoopMonitor();
+        }
       });
     }
   };
@@ -393,7 +619,13 @@
     this._generation++;
     var el = this.currentEl;
     if (paused) {
+      this._stopLoopMonitor();
       el.pause();
+      if (el._rvTwin) {
+        try {
+          el._rvTwin.pause();
+        } catch (e) {}
+      }
       this.applyVolumeToOutputs();
     } else {
       var self = this;
@@ -402,6 +634,7 @@
         if (gen !== self._generation || !self.currentEl || el !== self.currentEl) return;
         if (!ok) return;
         self.applyVolumeToOutputs();
+        self._startLoopMonitor();
       });
     }
   };
@@ -426,6 +659,8 @@
   };
 
   AmbientLoopLayer.prototype.stopAll = function () {
+    this._stopLoopMonitor();
+    this._loopHandoffScheduled = false;
     this._generation++;
     this._fadeStamp++;
     this._paused = false;
@@ -434,6 +669,14 @@
       var el = this.audios[k];
       el.pause();
       el.volume = 1;
+      if (el._rvTwin) {
+        el._rvTwin.pause();
+        el._rvTwin.volume = 1;
+      }
+      if (this._audioCtx) {
+        applyElementOutputGain(el, 1, this._audioCtx);
+        if (el._rvTwin) applyElementOutputGain(el._rvTwin, 1, this._audioCtx);
+      }
     }
     if (this._gainNode) {
       applyGain(this._gainNode, 0, this._audioCtx);
@@ -453,6 +696,7 @@
     safePlay(el).then(function (ok) {
       if (ok && gen === self._generation && el === self.currentEl) {
         self.applyVolumeToOutputs();
+        self._startLoopMonitor();
       }
     });
   };
