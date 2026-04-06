@@ -34,6 +34,13 @@
 
     function unlock() {
       engine.resumeAudioContextIfNeeded();
+      if (typeof engine.nudgePlayback === 'function') {
+        engine.nudgePlayback();
+      }
+      /* iOS PWA: keep listeners — running can flip before <audio> actually plays; nudge on every touch. */
+      if (isIOSLike()) {
+        return;
+      }
       try {
         if (engine._ctx && engine._ctx.state === 'running') {
           document.removeEventListener('touchstart', unlock, true);

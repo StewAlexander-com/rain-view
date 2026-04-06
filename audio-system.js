@@ -46,7 +46,7 @@
    * Bump when any MP3 under assets/ is replaced. Browsers and CDNs cache
    * audio URLs by path; a query string forces a fresh fetch (same file name).
    */
-  var RV_AUDIO_ASSET_VER = '13';
+  var RV_AUDIO_ASSET_VER = '15';
 
   function withAssetVer(path) {
     var sep = path.indexOf('?') >= 0 ? '&' : '?';
@@ -220,6 +220,41 @@
         elB.load();
         return Promise.all([waitUntilPlayable(elA), waitUntilPlayable(elB)]);
       });
+  }
+
+  /**
+   * iOS PWA: play() after load microtasks may run before resume() finishes.
+   * Wait until running (or timeout) so MES + play see an active graph.
+   */
+  function waitForAudioContextRunning(ctx, maxMs) {
+    maxMs = maxMs != null ? maxMs : 900;
+    return new Promise(function (resolve) {
+      if (!ctx || ctx.state === 'closed' || ctx.state === 'running') {
+        resolve();
+        return;
+      }
+      var finished = false;
+      function done() {
+        if (finished) return;
+        finished = true;
+        try {
+          ctx.removeEventListener('statechange', onState);
+        } catch (e) {}
+        try {
+          clearTimeout(tid);
+        } catch (e2) {}
+        resolve();
+      }
+      function onState() {
+        if (ctx.state === 'running' || ctx.state === 'closed') done();
+      }
+      ctx.addEventListener('statechange', onState);
+      var tid = setTimeout(done, maxMs);
+      try {
+        var pr = ctx.resume();
+        if (pr && typeof pr.then === 'function') pr.catch(function () {});
+      } catch (e3) {}
+    });
   }
 
   async function safePlay(el) {
@@ -633,32 +668,72 @@
         }
         return;
       }
-      tryConnectMES(self, incoming);
-      if (incoming._rvMESFailed) {
-        incoming.volume = 0;
-      }
-      safePlay(incoming).then(function (ok) {
+      function runPlayAfterContextReady() {
         if (gen !== self._generation) return;
-        if (!ok) {
-          if (self._gainNode && !incoming._rvMESFailed) {
-            applyGain(self._gainNode, targetVol, self._audioCtx);
-          } else {
-            incoming.volume = targetVol;
-          }
-          return;
+        tryConnectMES(self, incoming);
+        if (incoming._rvMESFailed) {
+          incoming.volume = 0;
         }
-        self._startLoopMonitor();
-        self._fadeStamp++;
-        var fadeId = self._fadeStamp;
-        fadeLayerVolume(
-          self,
-          targetVol,
-          self.fadeInMs,
-          function () {
-            return fadeId === self._fadeStamp && gen === self._generation;
+        function afterPlayOk(ok) {
+          if (gen !== self._generation) return;
+          if (!ok) {
+            if (self._gainNode && !incoming._rvMESFailed) {
+              applyGain(self._gainNode, targetVol, self._audioCtx);
+            } else {
+              incoming.volume = targetVol;
+            }
+            return;
           }
-        );
-      });
+          self._startLoopMonitor();
+          self._fadeStamp++;
+          var fadeId = self._fadeStamp;
+          fadeLayerVolume(
+            self,
+            targetVol,
+            self.fadeInMs,
+            function () {
+              return fadeId === self._fadeStamp && gen === self._generation;
+            }
+          );
+        }
+        function tryPlayOnce() {
+          return safePlay(incoming);
+        }
+        tryPlayOnce().then(function (ok) {
+          if (gen !== self._generation) return;
+          if (ok || !self._mobileProfile) {
+            afterPlayOk(ok);
+            return;
+          }
+          resumeActiveEngineCtx();
+          waitForAudioContextRunning(self._audioCtx, 700).then(function () {
+            if (gen !== self._generation) return;
+            tryPlayOnce().then(function (ok2) {
+              if (gen !== self._generation) return;
+              if (ok2) {
+                afterPlayOk(true);
+                return;
+              }
+              setTimeout(function () {
+                if (gen !== self._generation) return;
+                resumeActiveEngineCtx();
+                tryPlayOnce().then(function (ok3) {
+                  afterPlayOk(!!ok3);
+                });
+              }, 200);
+            });
+          });
+        });
+      }
+
+      if (self._mobileProfile && self._audioCtx) {
+        resumeActiveEngineCtx();
+        waitForAudioContextRunning(self._audioCtx, 900).then(function () {
+          runPlayAfterContextReady();
+        });
+      } else {
+        runPlayAfterContextReady();
+      }
     }
 
     var loadP = incoming._rvLoad;
@@ -812,12 +887,23 @@
     if (!el.paused) return;
     var self = this;
     var gen = this._generation;
-    safePlay(el).then(function (ok) {
-      if (ok && gen === self._generation && el === self.currentEl) {
-        self.applyVolumeToOutputs();
-        self._startLoopMonitor();
-      }
-    });
+    resumeActiveEngineCtx();
+    function doPlay() {
+      safePlay(el).then(function (ok) {
+        if (ok && gen === self._generation && el === self.currentEl) {
+          self.applyVolumeToOutputs();
+          self._startLoopMonitor();
+        }
+      });
+    }
+    if (self._mobileProfile && self._audioCtx) {
+      waitForAudioContextRunning(self._audioCtx, 600).then(function () {
+        if (gen !== self._generation || el !== self.currentEl) return;
+        doPlay();
+      });
+    } else {
+      doPlay();
+    }
   };
 
   function ensureHost() {
@@ -888,34 +974,56 @@
         refreshLoopMonitor(eng.rainLayer);
         refreshLoopMonitor(eng.pianoLayer);
         if (document.hidden) return;
-        eng.rainLayer.recoverIfNeeded();
-        eng.pianoLayer.recoverIfNeeded();
+        if (rvIsMobileAudioProfile() && typeof eng.nudgePlayback === 'function') {
+          eng.nudgePlayback();
+        } else {
+          eng.rainLayer.recoverIfNeeded();
+          eng.pianoLayer.recoverIfNeeded();
+        }
       });
     }
     if (!global.__rainViewPageShowInstalled) {
       global.__rainViewPageShowInstalled = true;
       global.addEventListener('pageshow', function (ev) {
-        if (!ev.persisted) return;
         var eng = global.__rainViewActiveEngine;
-        if (eng && typeof eng.resumeAudioContextIfNeeded === 'function') {
-          eng.resumeAudioContextIfNeeded();
-        }
-        if (!eng || !eng.rainLayer) return;
-        try {
-          eng.rainLayer._stopLoopMonitor();
-          eng.pianoLayer._stopLoopMonitor();
-          eng.rainLayer.recoverIfNeeded();
-          eng.pianoLayer.recoverIfNeeded();
-          function remon(L) {
-            if (!L || !L.currentEl || L._paused || L._volume < 0.001) return;
-            try {
-              if (!L.currentEl.paused) L._startLoopMonitor();
-            } catch (e) {}
+        if (!eng) return;
+        if (ev.persisted) {
+          if (typeof eng.resumeAudioContextIfNeeded === 'function') {
+            eng.resumeAudioContextIfNeeded();
           }
-          remon(eng.rainLayer);
-          remon(eng.pianoLayer);
-        } catch (e2) {}
+          if (!eng.rainLayer) return;
+          try {
+            eng.rainLayer._stopLoopMonitor();
+            eng.pianoLayer._stopLoopMonitor();
+            eng.rainLayer.recoverIfNeeded();
+            eng.pianoLayer.recoverIfNeeded();
+            function remon(L) {
+              if (!L || !L.currentEl || L._paused || L._volume < 0.001) return;
+              try {
+                if (!L.currentEl.paused) L._startLoopMonitor();
+              } catch (e) {}
+            }
+            remon(eng.rainLayer);
+            remon(eng.pianoLayer);
+          } catch (e2) {}
+          return;
+        }
+        if (rvIsMobileAudioProfile() && typeof eng.nudgePlayback === 'function') {
+          eng.nudgePlayback();
+        }
       });
+    }
+    if (!global.__rainViewWindowFocusAudioInstalled) {
+      global.__rainViewWindowFocusAudioInstalled = true;
+      global.addEventListener(
+        'focus',
+        function () {
+          if (!rvIsMobileAudioProfile()) return;
+          var eng = global.__rainViewActiveEngine;
+          if (eng && typeof eng.nudgePlayback === 'function') eng.nudgePlayback();
+        },
+        false
+      );
     }
   };
 
@@ -982,6 +1090,13 @@
   AudioEngine.prototype.stopAll = function () {
     if (this.rainLayer) this.rainLayer.stopAll();
     if (this.pianoLayer) this.pianoLayer.stopAll();
+  };
+
+  /** Resume Web Audio + replay paused layers (iOS PWA / Safari after gesture or foreground). */
+  AudioEngine.prototype.nudgePlayback = function () {
+    this.resumeAudioContextIfNeeded();
+    if (this.rainLayer) this.rainLayer.recoverIfNeeded();
+    if (this.pianoLayer) this.pianoLayer.recoverIfNeeded();
   };
 
   AudioEngine.prototype.isRainPaused = function () {

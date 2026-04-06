@@ -222,6 +222,17 @@
 
     syncPlayPauseUi();
     showCtrl();
+
+    /* iOS / PWA: first play often lands outside strict activation; re-nudge after resume + decode settle. */
+    if (isIOSAudioUi() && typeof audio.nudgePlayback === 'function') {
+      audio.nudgePlayback();
+      setTimeout(function () {
+        audio.nudgePlayback();
+      }, 100);
+      setTimeout(function () {
+        audio.nudgePlayback();
+      }, 400);
+    }
   }
 
   function syncPlayPauseUi() {
