@@ -26,6 +26,7 @@
   const pianoPills = document.getElementById('piano-pills');
   const rainPlayPause = document.getElementById('rain-playpause');
   const pianoPlayPause = document.getElementById('piano-playpause');
+  const fsBtn = document.getElementById('fullscreen-toggle');
 
   let audio = null;
   let current = null;
@@ -33,6 +34,84 @@
 
   function isIOSAudioUi() {
     return typeof RainViewMobile !== 'undefined' && typeof RainViewMobile.isIOSLike === 'function' && RainViewMobile.isIOSLike();
+  }
+
+  function fullscreenApiAvailable() {
+    return !!(sceneEl && (sceneEl.requestFullscreen || sceneEl.webkitRequestFullscreen));
+  }
+
+  function shouldOfferFullscreenControl() {
+    if (!fullscreenApiAvailable()) return false;
+    if (typeof RainViewMobile !== 'undefined' && RainViewMobile.isMobileAudioDevice && RainViewMobile.isMobileAudioDevice()) {
+      return false;
+    }
+    try {
+      if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) return false;
+    } catch (e) {}
+    return true;
+  }
+
+  function getFullscreenElement() {
+    return document.fullscreenElement || document.webkitFullscreenElement || null;
+  }
+
+  function isSceneFullscreen() {
+    return getFullscreenElement() === sceneEl;
+  }
+
+  function exitFullscreenIfActive() {
+    if (!getFullscreenElement()) return Promise.resolve();
+    const x = document.exitFullscreen || document.webkitExitFullscreen;
+    if (!x) return Promise.resolve();
+    try {
+      const p = x.call(document);
+      return p !== undefined && p && typeof p.then === 'function' ? p.catch(() => {}) : Promise.resolve();
+    } catch (e) {
+      return Promise.resolve();
+    }
+  }
+
+  function requestSceneFullscreen() {
+    const req = sceneEl.requestFullscreen || sceneEl.webkitRequestFullscreen;
+    if (!req) return Promise.reject(new Error('fullscreen'));
+    try {
+      const p = req.call(sceneEl);
+      return p !== undefined && p && typeof p.then === 'function' ? p : Promise.resolve();
+    } catch (e) {
+      return Promise.reject(e);
+    }
+  }
+
+  function syncFullscreenUi() {
+    if (!fsBtn || fsBtn.hasAttribute('hidden')) return;
+    const on = isSceneFullscreen();
+    fsBtn.classList.toggle('is-fullscreen', on);
+    fsBtn.setAttribute('aria-label', on ? 'Exit fullscreen' : 'Enter fullscreen');
+    fsBtn.setAttribute('title', on ? 'Exit fullscreen' : 'Fullscreen');
+  }
+
+  function initFullscreenControl() {
+    if (!fsBtn || !sceneEl) return;
+    if (!shouldOfferFullscreenControl()) {
+      fsBtn.hidden = true;
+      return;
+    }
+    fsBtn.removeAttribute('hidden');
+    document.documentElement.classList.add('rv-desktop-fullscreen');
+    syncFullscreenUi();
+    function onFsChange() {
+      syncFullscreenUi();
+    }
+    document.addEventListener('fullscreenchange', onFsChange);
+    document.addEventListener('webkitfullscreenchange', onFsChange);
+    fsBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      if (isSceneFullscreen()) {
+        exitFullscreenIfActive().then(() => syncFullscreenUi());
+      } else {
+        requestSceneFullscreen().then(() => syncFullscreenUi()).catch(() => syncFullscreenUi());
+      }
+    });
   }
 
   function init() {
@@ -101,8 +180,14 @@
     // Auto-hide
     setupAutoHide();
 
-    // Keyboard
-    document.addEventListener('keydown', e => { if (e.key === 'Escape' && current) exitScene(); });
+    initFullscreenControl();
+
+    // Keyboard — let the browser exit element fullscreen on first Escape; second Escape leaves the scene.
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'Escape' || !current) return;
+      if (getFullscreenElement()) return;
+      exitScene();
+    });
   }
 
   function enterScene(id) {
@@ -151,6 +236,7 @@
   }
 
   function exitScene() {
+    exitFullscreenIfActive().then(() => syncFullscreenUi());
     vid.pause();
     vid.src = '';
     audio.stopAll();
