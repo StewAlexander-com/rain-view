@@ -12,10 +12,41 @@
   }
 
   /**
+   * Mobile / touch devices: slower play() startup and heavy rAF throttling when
+   * the tab is hidden. Uses RainViewMobile when loaded (after mobile.js); otherwise
+   * UA / pointer heuristics so audio-system stays safe if load order changes.
+   */
+  function rvIsMobileAudioProfile() {
+    try {
+      if (global.RainViewMobile && typeof global.RainViewMobile.isMobileAudioDevice === 'function') {
+        return !!global.RainViewMobile.isMobileAudioDevice();
+      }
+    } catch (e) {}
+    if (typeof navigator === 'undefined') return false;
+    var ua = navigator.userAgent || '';
+    if (/iPad|iPhone|iPod|Android/i.test(ua)) return true;
+    if (
+      typeof navigator.platform === 'string' &&
+      navigator.platform === 'MacIntel' &&
+      navigator.maxTouchPoints > 1
+    ) {
+      return true;
+    }
+    try {
+      if (global.matchMedia && global.matchMedia('(pointer: coarse)').matches) return true;
+    } catch (e2) {}
+    return typeof navigator.maxTouchPoints === 'number' && navigator.maxTouchPoints > 0;
+  }
+
+  function rvAudioContextUsable(ctx) {
+    return !!ctx && ctx.state !== 'closed';
+  }
+
+  /**
    * Bump when any MP3 under assets/ is replaced. Browsers and CDNs cache
    * audio URLs by path; a query string forces a fresh fetch (same file name).
    */
-  var RV_AUDIO_ASSET_VER = '12';
+  var RV_AUDIO_ASSET_VER = '13';
 
   function withAssetVer(path) {
     var sep = path.indexOf('?') >= 0 ? '&' : '?';
@@ -42,7 +73,7 @@
   function applyGain(gainNode, value, audioCtx) {
     value = clamp01(value);
     if (!gainNode) return;
-    if (audioCtx) {
+    if (audioCtx && rvAudioContextUsable(audioCtx)) {
       try {
         var t = audioCtx.currentTime;
         gainNode.gain.cancelScheduledValues(t);
@@ -63,6 +94,7 @@
   function tryConnectMES(layer, el) {
     resumeActiveEngineCtx();
     if (!layer._audioCtx || !layer._gainNode || !el) return false;
+    if (!rvAudioContextUsable(layer._audioCtx)) return false;
     if (el._rvMES) return true;
     try {
       el.volume = 1;
@@ -81,7 +113,7 @@
   function applyElementOutputGain(el, value, audioCtx) {
     value = clamp01(value);
     if (!el) return;
-    if (el._rvElementGain && audioCtx) {
+    if (el._rvElementGain && audioCtx && rvAudioContextUsable(audioCtx)) {
       try {
         var t = audioCtx.currentTime;
         el._rvElementGain.gain.cancelScheduledValues(t);
@@ -124,6 +156,11 @@
   }
 
   function fetchWholeFileIntoAudio(audioEl, url) {
+    if (typeof global.fetch !== 'function') {
+      audioEl.src = url;
+      audioEl.load();
+      return waitUntilPlayable(audioEl);
+    }
     return fetch(url, { credentials: 'same-origin' })
       .then(function (res) {
         if (!res.ok) throw new Error(String(res.status));
@@ -153,6 +190,13 @@
    * so the idle twin can start instantly at loop boundaries.
    */
   function fetchWholeFileIntoDualAudio(elA, elB, url) {
+    if (typeof global.fetch !== 'function') {
+      elA.src = url;
+      elB.src = url;
+      elA.load();
+      elB.load();
+      return Promise.all([waitUntilPlayable(elA), waitUntilPlayable(elB)]);
+    }
     return fetch(url, { credentials: 'same-origin' })
       .then(function (res) {
         if (!res.ok) throw new Error(String(res.status));
@@ -179,13 +223,20 @@
   }
 
   async function safePlay(el) {
-    for (var attempt = 0; attempt < 2; attempt++) {
+    var mobile = rvIsMobileAudioProfile();
+    var attempts = mobile ? 4 : 2;
+    var delayMs = mobile ? 120 : 70;
+    for (var attempt = 0; attempt < attempts; attempt++) {
       try {
-        await el.play();
+        if (!el) return false;
+        var p = el.play();
+        if (p !== undefined && p && typeof p.then === 'function') {
+          await p;
+        }
         return true;
       } catch (_) {
         await new Promise(function (r) {
-          setTimeout(r, 70);
+          setTimeout(r, delayMs);
         });
       }
     }
@@ -268,6 +319,30 @@
   }
 
   /**
+   * Twin handoff can miss when rAF is frozen (background tab). With loop=false,
+   * the element then fires `ended` — restart from 0 instead of silence.
+   */
+  function attachEndedLoopRecovery(layer, el) {
+    el.addEventListener(
+      'ended',
+      function () {
+        if (layer.currentEl !== el) return;
+        if (layer._paused || layer._volume < 0.001) return;
+        layer._loopHandoffScheduled = false;
+        try {
+          el.currentTime = 0;
+        } catch (e) {}
+        safePlay(el).then(function (ok) {
+          if (!ok || layer.currentEl !== el) return;
+          layer.applyVolumeToOutputs();
+          layer._startLoopMonitor();
+        });
+      },
+      false
+    );
+  }
+
+  /**
    * One looping layer (rain or piano).
    * Each variant uses twin <audio> elements on one blob URL: the idle twin is
    * fully buffered and started before the active clip ends, then crossfaded —
@@ -288,7 +363,9 @@
     this._volume = 1;
     this._paused = false;
     this._loopMonitorRaf = null;
+    this._loopIntervalId = null;
     this._loopHandoffScheduled = false;
+    this._mobileProfile = !!rvIsMobileAudioProfile();
 
     var self = this;
     var keys = Object.keys(nameToSrc);
@@ -321,6 +398,8 @@
         var loadP = fetchWholeFileIntoDualAudio(a, b, url);
         a._rvLoad = loadP;
         b._rvLoad = loadP;
+        attachEndedLoopRecovery(self, a);
+        attachEndedLoopRecovery(self, b);
         self.audios[name] = a;
       })(keys[i], nameToSrc[keys[i]]);
     }
@@ -331,6 +410,10 @@
     if (duration > 0 && isFinite(duration)) {
       lead = Math.min(lead, Math.max(0.09, duration * 0.22));
     }
+    if (this._mobileProfile) {
+      lead += 0.1;
+      lead = Math.min(0.48, lead);
+    }
     return lead;
   };
 
@@ -339,36 +422,72 @@
       cancelAnimationFrame(this._loopMonitorRaf);
       this._loopMonitorRaf = null;
     }
+    if (this._loopIntervalId != null) {
+      try {
+        clearInterval(this._loopIntervalId);
+      } catch (e) {}
+      this._loopIntervalId = null;
+    }
+  };
+
+  AmbientLoopLayer.prototype._loopMaybeHandoff = function () {
+    var self = this;
+    if (self._paused || self._volume < 0.001) return;
+    var el = self.currentEl;
+    if (!el || el.paused) return;
+    var twin = el._rvTwin;
+    if (!twin) return;
+    var d = el.duration;
+    if (!d || !isFinite(d)) return;
+    if (self._loopHandoffScheduled) return;
+    var remain;
+    try {
+      remain = d - el.currentTime;
+    } catch (e) {
+      return;
+    }
+    if (!isFinite(remain)) return;
+    if (remain > self._getLoopLeadSec(d)) return;
+    self._loopHandoffScheduled = true;
+    self._executeLoopHandoff(el, twin);
   };
 
   AmbientLoopLayer.prototype._startLoopMonitor = function () {
     var self = this;
     self._stopLoopMonitor();
-    function tick() {
-      self._loopMonitorRaf = requestAnimationFrame(tick);
-      if (self._paused || self._volume < 0.001) return;
-      var el = self.currentEl;
-      if (!el || el.paused) return;
-      var twin = el._rvTwin;
-      if (!twin) return;
-      var d = el.duration;
-      if (!d || !isFinite(d)) return;
-      if (self._loopHandoffScheduled) return;
-      if (d - el.currentTime > self._getLoopLeadSec(d)) return;
-      self._loopHandoffScheduled = true;
-      self._executeLoopHandoff(el, twin);
+    var hidden = typeof document !== 'undefined' && document.hidden;
+    /* Background tabs throttle rAF; interval keeps handoff alive on mobile Safari. */
+    if (hidden) {
+      var ms = self._mobileProfile ? 120 : 180;
+      self._loopIntervalId = setInterval(function () {
+        self._loopMaybeHandoff();
+      }, ms);
+      self._loopMaybeHandoff();
+      return;
     }
-    self._loopMonitorRaf = requestAnimationFrame(tick);
+    function rafTick() {
+      self._loopMonitorRaf = requestAnimationFrame(rafTick);
+      self._loopMaybeHandoff();
+    }
+    self._loopMonitorRaf = requestAnimationFrame(rafTick);
   };
 
   AmbientLoopLayer.prototype._executeLoopHandoff = function (fromEl, toEl) {
     var self = this;
     var gen = self._generation;
     var ctx = self._audioCtx;
-    var crossfadeMs = 56;
+    var crossfadeMs = self._mobileProfile ? 80 : 56;
     var u = self._volume;
 
-    toEl.currentTime = 0;
+    try {
+      toEl.currentTime = 0;
+    } catch (e) {
+      self._loopHandoffScheduled = false;
+      try {
+        fromEl.loop = true;
+      } catch (e2) {}
+      return;
+    }
     resumeActiveEngineCtx();
     tryConnectMES(self, toEl);
 
@@ -754,11 +873,48 @@
     if (!global.__rainViewVisListenerInstalled) {
       global.__rainViewVisListenerInstalled = true;
       document.addEventListener('visibilitychange', function () {
-        if (document.hidden) return;
         var eng = global.__rainViewActiveEngine;
         if (!eng || !eng.rainLayer) return;
+        function refreshLoopMonitor(layer) {
+          if (!layer || !layer.currentEl) return;
+          if (layer._paused || layer._volume < 0.001) return;
+          try {
+            if (!layer.currentEl.paused) {
+              layer._stopLoopMonitor();
+              layer._startLoopMonitor();
+            }
+          } catch (e) {}
+        }
+        refreshLoopMonitor(eng.rainLayer);
+        refreshLoopMonitor(eng.pianoLayer);
+        if (document.hidden) return;
         eng.rainLayer.recoverIfNeeded();
         eng.pianoLayer.recoverIfNeeded();
+      });
+    }
+    if (!global.__rainViewPageShowInstalled) {
+      global.__rainViewPageShowInstalled = true;
+      global.addEventListener('pageshow', function (ev) {
+        if (!ev.persisted) return;
+        var eng = global.__rainViewActiveEngine;
+        if (eng && typeof eng.resumeAudioContextIfNeeded === 'function') {
+          eng.resumeAudioContextIfNeeded();
+        }
+        if (!eng || !eng.rainLayer) return;
+        try {
+          eng.rainLayer._stopLoopMonitor();
+          eng.pianoLayer._stopLoopMonitor();
+          eng.rainLayer.recoverIfNeeded();
+          eng.pianoLayer.recoverIfNeeded();
+          function remon(L) {
+            if (!L || !L.currentEl || L._paused || L._volume < 0.001) return;
+            try {
+              if (!L.currentEl.paused) L._startLoopMonitor();
+            } catch (e) {}
+          }
+          remon(eng.rainLayer);
+          remon(eng.pianoLayer);
+        } catch (e2) {}
       });
     }
   };
@@ -787,7 +943,7 @@
 
   /** Call on every volume change and after user gesture — iOS keeps AudioContext suspended until resume(). */
   AudioEngine.prototype.resumeAudioContextIfNeeded = function () {
-    if (!this._ctx) return;
+    if (!this._ctx || this._ctx.state === 'closed') return;
     if (this._ctx.state === 'suspended') {
       var p = this._ctx.resume();
       if (p && typeof p.then === 'function') {

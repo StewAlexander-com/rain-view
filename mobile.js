@@ -38,6 +38,7 @@
         if (engine._ctx && engine._ctx.state === 'running') {
           document.removeEventListener('touchstart', unlock, true);
           document.removeEventListener('touchend', unlock, true);
+          document.removeEventListener('pointerdown', unlock, true);
           document.removeEventListener('click', unlock, true);
         }
       } catch (e) {}
@@ -45,6 +46,7 @@
 
     document.addEventListener('touchstart', unlock, { capture: true, passive: true });
     document.addEventListener('touchend', unlock, { capture: true, passive: true });
+    document.addEventListener('pointerdown', unlock, { capture: true, passive: true });
     document.addEventListener('click', unlock, { capture: true, passive: true });
   }
 
