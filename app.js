@@ -33,6 +33,7 @@
   let current = null;
   let idleTimer = null;
   let audioHintTimer = null;
+  let lastPreparedSceneId = null;
 
   function safePlayVideo(maxAttempts) {
     maxAttempts = maxAttempts != null ? maxAttempts : 4;
@@ -190,7 +191,20 @@
 
     // Scene cards
     document.querySelectorAll('.card').forEach(c => {
-      c.addEventListener('click', () => enterScene(c.dataset.scene));
+      const id = c.dataset.scene;
+      // Warm up video + audio on earliest intent signal so the subsequent click
+      // has a much better chance of immediate playback on iOS PWA.
+      c.addEventListener(
+        'pointerdown',
+        () => prepareScene(id),
+        { passive: true }
+      );
+      c.addEventListener(
+        'touchstart',
+        () => prepareScene(id),
+        { passive: true }
+      );
+      c.addEventListener('click', () => enterScene(id));
     });
 
     // Back
@@ -306,6 +320,10 @@
       audio.start();
       audio.setRainVariant(s.defaultRain);
       audio.setPianoVariant(s.defaultPiano);
+      // Critical: attempt actual playback again *after* variants are set, inside the same gesture.
+      if (typeof audio.nudgePlayback === 'function') {
+        audio.nudgePlayback();
+      }
     } catch (e3) {}
 
     syncPlayPauseUi();
@@ -323,6 +341,42 @@
         audio.nudgePlayback();
       }, 400);
     }
+  }
+
+  function prepareScene(id) {
+    if (!id) return;
+    if (lastPreparedSceneId === id) return;
+    const s = SCENES[id];
+    if (!s) return;
+    lastPreparedSceneId = id;
+
+    // Begin buffering the MP4 early (video is in DOM even while scene is hidden).
+    try {
+      if (vid) {
+        vid.poster = s.thumb || '';
+        vid.preload = 'auto';
+        vid.playsInline = true;
+        vid.muted = true;
+        if (vid.src !== s.video) {
+          vid.src = s.video;
+          vid.load();
+        }
+      }
+    } catch (e) {}
+
+    // Begin warming audio graph + selecting variants early.
+    try {
+      const rainLevel = isIOSAudioUi() ? IOS_RAIN_VOL : 0.7;
+      const pianoLevel = isIOSAudioUi() ? IOS_RAIN_VOL * IOS_PIANO_VS_RAIN : 0;
+      audio.setRainVolume(rainLevel);
+      audio.setPianoVolume(pianoLevel);
+      audio.start();
+      audio.setRainVariant(s.defaultRain);
+      audio.setPianoVariant(s.defaultPiano);
+      if (typeof audio.nudgePlayback === 'function') {
+        audio.nudgePlayback();
+      }
+    } catch (e2) {}
   }
 
   function syncPlayPauseUi() {
