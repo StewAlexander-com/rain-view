@@ -412,8 +412,9 @@
         const p = audio && audio.pianoLayer && audio.pianoLayer.currentEl;
         const rainShouldPlay = audio && audio.rainLayer && !audio.rainLayer._paused && audio.rainLayer._volume > 0.05;
         const pianoShouldPlay = audio && audio.pianoLayer && !audio.pianoLayer._paused && audio.pianoLayer._volume > 0.05;
-        const rainSilent = rainShouldPlay && r && r.paused;
-        const pianoSilent = pianoShouldPlay && p && p.paused;
+        // Treat "no current element yet" as silent too — iOS can block the first play() entirely.
+        const rainSilent = rainShouldPlay && (!r || r.paused);
+        const pianoSilent = pianoShouldPlay && (!p || p.paused);
         const videoPlaying = vid && !vid.paused;
         if (videoPlaying && (rainSilent || pianoSilent)) {
           audioSilentNote.hidden = false;
