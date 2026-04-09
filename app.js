@@ -29,6 +29,7 @@
   const fsBtn = document.getElementById('fullscreen-toggle');
   const iosAudioNote = document.getElementById('ios-audio-note');
   const audioSilentNote = document.getElementById('audio-silent-note');
+  const sceneIosNote = document.getElementById('scene-ios-note');
 
   let audio = null;
   let current = null;
@@ -396,6 +397,7 @@
       silentAudioTimer = null;
     }
     if (audioSilentNote) audioSilentNote.hidden = true;
+    if (sceneIosNote) sceneIosNote.hidden = true;
   }
 
   function scheduleSilentAudioNote() {
@@ -418,6 +420,7 @@
         const videoPlaying = vid && !vid.paused;
         if (videoPlaying && (rainSilent || pianoSilent)) {
           audioSilentNote.hidden = false;
+          if (sceneIosNote) sceneIosNote.hidden = false;
         }
       } catch (e) {}
     }, 1400);

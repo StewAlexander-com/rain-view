@@ -51,7 +51,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=27">
+  <link rel="stylesheet" href="style.css?v=28">
 </head>
 <body>
 
@@ -97,7 +97,7 @@
   <div id="scene" class="scene hidden">
     <video id="vid" muted loop playsinline preload="auto"></video>
     <div class="vignette"></div>
-    <div class="scene-ios-note" aria-hidden="true">If silent: fully close + reopen app</div>
+    <div class="scene-ios-note" id="scene-ios-note" aria-hidden="true" hidden>If silent: fully close + reopen app</div>
     <div id="audio-silent-note" class="audio-silent-note" hidden>
       No sound? On iOS home-screen apps, fully close and reopen Rain View.
     </div>
@@ -161,8 +161,8 @@
   </div>
 
   <!-- Bump ?v= when changing audio-system.js / mobile.js / app.js so disk cache cannot pin old JS (which pins old MP3 URLs). -->
-  <script src="audio-system.js?v=26"></script>
-  <script src="mobile.js?v=26"></script>
-  <script src="app.js?v=26"></script>
+  <script src="audio-system.js?v=28"></script>
+  <script src="mobile.js?v=28"></script>
+  <script src="app.js?v=28"></script>
 </body>
 </html>
