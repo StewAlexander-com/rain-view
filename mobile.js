@@ -55,6 +55,15 @@
     document.addEventListener('touchend', unlock, { capture: true, passive: true });
     document.addEventListener('pointerdown', unlock, { capture: true, passive: true });
     document.addEventListener('click', unlock, { capture: true, passive: true });
+
+    // iOS Safari/PWA: coming back from app switch can suspend audio again; re-nudge on resume.
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) return;
+      unlock();
+    });
+    global.addEventListener('pageshow', function () {
+      unlock();
+    });
   }
 
   /**

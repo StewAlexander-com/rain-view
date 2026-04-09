@@ -27,10 +27,40 @@
   const rainPlayPause = document.getElementById('rain-playpause');
   const pianoPlayPause = document.getElementById('piano-playpause');
   const fsBtn = document.getElementById('fullscreen-toggle');
+  const audioHint = document.getElementById('audio-unlock-hint');
 
   let audio = null;
   let current = null;
   let idleTimer = null;
+  let audioHintTimer = null;
+
+  function safePlayVideo(maxAttempts) {
+    maxAttempts = maxAttempts != null ? maxAttempts : 4;
+    if (!vid) return Promise.resolve(false);
+    let attempt = 0;
+    const delay = isIOSAudioUi() ? 140 : 90;
+    function step() {
+      attempt++;
+      try {
+        const p = vid.play();
+        if (p && typeof p.then === 'function') {
+          return p.then(
+            () => true,
+            () =>
+              new Promise(resolve => {
+                if (attempt >= maxAttempts) return resolve(false);
+                setTimeout(() => resolve(step()), delay);
+              })
+          );
+        }
+        return Promise.resolve(true);
+      } catch (e) {
+        if (attempt >= maxAttempts) return Promise.resolve(false);
+        return new Promise(resolve => setTimeout(() => resolve(step()), delay));
+      }
+    }
+    return step();
+  }
 
   function isIOSAudioUi() {
     return typeof RainViewMobile !== 'undefined' && typeof RainViewMobile.isIOSLike === 'function' && RainViewMobile.isIOSLike();
@@ -121,8 +151,41 @@
       RainViewMobile.configureRainViewMobileAudio(audio);
     }
 
+    if (audioHint) {
+      audioHint.addEventListener('click', function (e) {
+        e.stopPropagation();
+        try {
+          if (audio && typeof audio.resumeAudioContextIfNeeded === 'function') audio.resumeAudioContextIfNeeded();
+          if (audio && typeof audio.nudgePlayback === 'function') audio.nudgePlayback();
+        } catch (err) {}
+        // Let the subsequent poll hide it if audio actually unlocked.
+        pollAudioUnlockHint(1200);
+      });
+    }
+
     if (isIOSAudioUi()) {
       document.documentElement.classList.add('rv-ios-volume');
+    }
+
+    if (vid) {
+      // Mobile Safari can stall/fail a video play after backgrounding; retry a few times.
+      function retryIfActive() {
+        if (!current) return;
+        safePlayVideo(5).then(() => {});
+      }
+      vid.addEventListener('stalled', retryIfActive);
+      vid.addEventListener('error', retryIfActive);
+      vid.addEventListener('suspend', retryIfActive);
+      document.addEventListener('visibilitychange', function () {
+        if (document.hidden || !current) return;
+        retryIfActive();
+        pollAudioUnlockHint(1400);
+      });
+      window.addEventListener('pageshow', function () {
+        if (!current) return;
+        retryIfActive();
+        pollAudioUnlockHint(1400);
+      });
     }
 
     // Scene cards
@@ -195,9 +258,31 @@
     if (!s) return;
     current = s;
 
+    // iOS: try to unlock audio immediately inside the tap handler.
+    try {
+      if (audio && typeof audio.resumeAudioContextIfNeeded === 'function') {
+        audio.resumeAudioContextIfNeeded();
+      }
+      if (audio && typeof audio.nudgePlayback === 'function') {
+        audio.nudgePlayback();
+      }
+    } catch (e0) {}
+
     // Video
+    try {
+      // Ensure we always have *something* visible while the MP4 is still buffering on iOS.
+      // Using the thumb as a poster prevents the "black screen" first impression.
+      vid.poster = s.thumb || '';
+      vid.preload = 'auto';
+      vid.playsInline = true;
+      vid.muted = true;
+    } catch (e) {}
     vid.src = s.video;
-    vid.play().catch(() => {});
+    try {
+      // Helps some iOS versions attach the new src immediately.
+      vid.load();
+    } catch (e2) {}
+    safePlayVideo(5).then(() => {});
     titleEl.textContent = s.title;
 
     // Set default variants
@@ -213,15 +298,20 @@
     splash.classList.add('hidden');
     sceneEl.classList.remove('hidden');
 
-    // Audio — set levels before start() so ensureWebAudio() picks up correct _volume (not default 1).
-    audio.setRainVolume(rainLevel);
-    audio.setPianoVolume(pianoLevel);
-    audio.start();
-    audio.setRainVariant(s.defaultRain);
-    audio.setPianoVariant(s.defaultPiano);
+    // Audio — isolate failures so video/UI still boot even if iOS blocks audio at first.
+    try {
+      // Set levels before start() so ensureWebAudio() picks up correct _volume (not default 1).
+      audio.setRainVolume(rainLevel);
+      audio.setPianoVolume(pianoLevel);
+      audio.start();
+      audio.setRainVariant(s.defaultRain);
+      audio.setPianoVariant(s.defaultPiano);
+    } catch (e3) {}
 
     syncPlayPauseUi();
     showCtrl();
+
+    pollAudioUnlockHint();
 
     /* iOS / PWA: first play often lands outside strict activation; re-nudge after resume + decode settle. */
     if (isIOSAudioUi() && typeof audio.nudgePlayback === 'function') {
@@ -248,12 +338,72 @@
 
   function exitScene() {
     exitFullscreenIfActive().then(() => syncFullscreenUi());
+    stopAudioUnlockHintPoll();
     vid.pause();
     vid.src = '';
     audio.stopAll();
     sceneEl.classList.add('hidden');
     setTimeout(() => splash.classList.remove('hidden'), 100);
     current = null;
+  }
+
+  function stopAudioUnlockHintPoll() {
+    if (audioHintTimer) {
+      clearInterval(audioHintTimer);
+      audioHintTimer = null;
+    }
+    if (audioHint) audioHint.hidden = true;
+  }
+
+  function audioSeemsLocked() {
+    if (!isIOSAudioUi()) return false;
+    if (!current || !audio) return false;
+    try {
+      // Primary signal: WebAudio context is still suspended.
+      if (audio._ctx && audio._ctx.state === 'suspended') return true;
+      // Fallback: if layers exist but nothing is actually playing yet.
+      const r = audio.rainLayer && audio.rainLayer.currentEl;
+      const p = audio.pianoLayer && audio.pianoLayer.currentEl;
+      if (r && r.paused && !(audio.rainLayer && audio.rainLayer._paused)) return true;
+      if (p && p.paused && !(audio.pianoLayer && audio.pianoLayer._paused)) return true;
+    } catch (e) {}
+    return false;
+  }
+
+  function pollAudioUnlockHint(maxMs) {
+    if (!audioHint) return;
+    if (!isIOSAudioUi()) {
+      audioHint.hidden = true;
+      return;
+    }
+
+    maxMs = maxMs != null ? maxMs : 3200;
+    const startedAt = performance.now();
+
+    stopAudioUnlockHintPoll();
+
+    audioHintTimer = setInterval(function () {
+      if (!current) {
+        stopAudioUnlockHintPoll();
+        return;
+      }
+      // Keep trying to unlock while we’re showing the hint — this is a "poke‑yoke" helper,
+      // and resume() calls are safe even when already running.
+      try {
+        if (audio && typeof audio.resumeAudioContextIfNeeded === 'function') audio.resumeAudioContextIfNeeded();
+        if (audio && typeof audio.nudgePlayback === 'function') audio.nudgePlayback();
+      } catch (e) {}
+      const locked = audioSeemsLocked();
+      audioHint.hidden = !locked;
+      // Stop polling once unlocked, or after a short window.
+      if (!locked || performance.now() - startedAt > maxMs) {
+        if (!locked) audioHint.hidden = true;
+        if (audioHintTimer) {
+          clearInterval(audioHintTimer);
+          audioHintTimer = null;
+        }
+      }
+    }, 250);
   }
 
   function setActivePill(container, value) {
