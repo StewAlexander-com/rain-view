@@ -101,15 +101,27 @@ body{min-height:100dvh;width:100vw;overflow:hidden;font-family:var(--font-body);
 .ctrl-title{font-family:var(--font-display);font-size:clamp(.95rem,.8rem+.4vw,1.2rem);font-weight:300;letter-spacing:.06em;color:var(--c-muted);text-shadow:0 1px 8px rgba(0,0,0,.5);flex:1;min-width:0}
 .scene-ios-note{
   display:none;
-  flex-shrink:0;
-  font-size:.62rem;
-  letter-spacing:.12em;
+  position:absolute;
+  left:50%;
+  top:calc(1.15rem + env(safe-area-inset-top, 0px));
+  transform:translateX(-50%);
+  z-index:9;
+  padding:.55rem .8rem;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(40,40,44,.62);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  color:#f2d36b;
+  font-family:var(--font-body);
+  font-size:.8rem;
+  letter-spacing:.1em;
   text-transform:uppercase;
-  color:rgba(232,232,236,.35);
-  text-shadow:0 1px 8px rgba(0,0,0,.4);
+  text-shadow:0 1px 8px rgba(0,0,0,.35);
   white-space:nowrap;
+  pointer-events:none;
 }
-.rv-ios-volume .scene-ios-note{display:inline}
+.rv-ios-volume .scene-ios-note{display:block}
 /* Desktop-only fullscreen: hidden by default; shown via html.rv-desktop-fullscreen + media (see below). */
 .btn-fullscreen{display:none;flex-shrink:0;align-items:center;justify-content:center;width:36px;height:36px;padding:0;border:1px solid rgba(255,255,255,.2);border-radius:10px;background:rgba(0,0,0,.35);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:rgba(255,255,255,.88);cursor:pointer;transition:background .2s,color .2s,border-color .2s,box-shadow .2s;box-shadow:0 2px 10px rgba(0,0,0,.35)}
 .btn-fullscreen:hover{background:rgba(0,0,0,.5);color:#fff;border-color:rgba(255,255,255,.28)}
