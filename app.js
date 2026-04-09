@@ -27,7 +27,7 @@
   const rainPlayPause = document.getElementById('rain-playpause');
   const pianoPlayPause = document.getElementById('piano-playpause');
   const fsBtn = document.getElementById('fullscreen-toggle');
-  const audioHint = document.getElementById('audio-unlock-hint');
+  const iosAudioNote = document.getElementById('ios-audio-note');
 
   let audio = null;
   let current = null;
@@ -152,20 +152,9 @@
       RainViewMobile.configureRainViewMobileAudio(audio);
     }
 
-    if (audioHint) {
-      audioHint.addEventListener('click', function (e) {
-        e.stopPropagation();
-        try {
-          if (audio && typeof audio.resumeAudioContextIfNeeded === 'function') audio.resumeAudioContextIfNeeded();
-          if (audio && typeof audio.nudgePlayback === 'function') audio.nudgePlayback();
-        } catch (err) {}
-        // Let the subsequent poll hide it if audio actually unlocked.
-        pollAudioUnlockHint(1200);
-      });
-    }
-
     if (isIOSAudioUi()) {
       document.documentElement.classList.add('rv-ios-volume');
+      if (iosAudioNote) iosAudioNote.hidden = false;
     }
 
     if (vid) {
@@ -180,12 +169,10 @@
       document.addEventListener('visibilitychange', function () {
         if (document.hidden || !current) return;
         retryIfActive();
-        pollAudioUnlockHint(1400);
       });
       window.addEventListener('pageshow', function () {
         if (!current) return;
         retryIfActive();
-        pollAudioUnlockHint(1400);
       });
     }
 
@@ -329,8 +316,6 @@
     syncPlayPauseUi();
     showCtrl();
 
-    pollAudioUnlockHint();
-
     /* iOS / PWA: first play often lands outside strict activation; re-nudge after resume + decode settle. */
     if (isIOSAudioUi() && typeof audio.nudgePlayback === 'function') {
       audio.nudgePlayback();
@@ -392,72 +377,12 @@
 
   function exitScene() {
     exitFullscreenIfActive().then(() => syncFullscreenUi());
-    stopAudioUnlockHintPoll();
     vid.pause();
     vid.src = '';
     audio.stopAll();
     sceneEl.classList.add('hidden');
     setTimeout(() => splash.classList.remove('hidden'), 100);
     current = null;
-  }
-
-  function stopAudioUnlockHintPoll() {
-    if (audioHintTimer) {
-      clearInterval(audioHintTimer);
-      audioHintTimer = null;
-    }
-    if (audioHint) audioHint.hidden = true;
-  }
-
-  function audioSeemsLocked() {
-    if (!isIOSAudioUi()) return false;
-    if (!current || !audio) return false;
-    try {
-      // Primary signal: WebAudio context is still suspended.
-      if (audio._ctx && audio._ctx.state === 'suspended') return true;
-      // Fallback: if layers exist but nothing is actually playing yet.
-      const r = audio.rainLayer && audio.rainLayer.currentEl;
-      const p = audio.pianoLayer && audio.pianoLayer.currentEl;
-      if (r && r.paused && !(audio.rainLayer && audio.rainLayer._paused)) return true;
-      if (p && p.paused && !(audio.pianoLayer && audio.pianoLayer._paused)) return true;
-    } catch (e) {}
-    return false;
-  }
-
-  function pollAudioUnlockHint(maxMs) {
-    if (!audioHint) return;
-    if (!isIOSAudioUi()) {
-      audioHint.hidden = true;
-      return;
-    }
-
-    maxMs = maxMs != null ? maxMs : 3200;
-    const startedAt = performance.now();
-
-    stopAudioUnlockHintPoll();
-
-    audioHintTimer = setInterval(function () {
-      if (!current) {
-        stopAudioUnlockHintPoll();
-        return;
-      }
-      // Keep trying to unlock while we’re showing the hint — this is a "poke‑yoke" helper,
-      // and resume() calls are safe even when already running.
-      try {
-        if (audio && typeof audio.resumeAudioContextIfNeeded === 'function') audio.resumeAudioContextIfNeeded();
-        if (audio && typeof audio.nudgePlayback === 'function') audio.nudgePlayback();
-      } catch (e) {}
-      const locked = audioSeemsLocked();
-      audioHint.hidden = !locked;
-      // Stop polling once unlocked, or after a short window.
-      if (!locked || performance.now() - startedAt > maxMs) {
-        if (!locked) audioHint.hidden = true;
-        if (audioHintTimer) {
-          clearInterval(audioHintTimer);
-          audioHintTimer = null;
-        }
-      }
-    }, 250);
   }
 
   function setActivePill(container, value) {
