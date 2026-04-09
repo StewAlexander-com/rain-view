@@ -28,12 +28,14 @@
   const pianoPlayPause = document.getElementById('piano-playpause');
   const fsBtn = document.getElementById('fullscreen-toggle');
   const iosAudioNote = document.getElementById('ios-audio-note');
+  const audioSilentNote = document.getElementById('audio-silent-note');
 
   let audio = null;
   let current = null;
   let idleTimer = null;
   let audioHintTimer = null;
   let lastPreparedSceneId = null;
+  let silentAudioTimer = null;
 
   function safePlayVideo(maxAttempts) {
     maxAttempts = maxAttempts != null ? maxAttempts : 4;
@@ -154,7 +156,6 @@
 
     if (isIOSAudioUi()) {
       document.documentElement.classList.add('rv-ios-volume');
-      if (iosAudioNote) iosAudioNote.hidden = false;
     }
 
     if (vid) {
@@ -298,6 +299,7 @@
     // Transition
     splash.classList.add('hidden');
     sceneEl.classList.remove('hidden');
+    hideSilentAudioNote();
 
     // Audio — isolate failures so video/UI still boot even if iOS blocks audio at first.
     try {
@@ -315,6 +317,8 @@
 
     syncPlayPauseUi();
     showCtrl();
+
+    scheduleSilentAudioNote();
 
     /* iOS / PWA: first play often lands outside strict activation; re-nudge after resume + decode settle. */
     if (isIOSAudioUi() && typeof audio.nudgePlayback === 'function') {
@@ -383,6 +387,39 @@
     sceneEl.classList.add('hidden');
     setTimeout(() => splash.classList.remove('hidden'), 100);
     current = null;
+    hideSilentAudioNote();
+  }
+
+  function hideSilentAudioNote() {
+    if (silentAudioTimer) {
+      clearTimeout(silentAudioTimer);
+      silentAudioTimer = null;
+    }
+    if (audioSilentNote) audioSilentNote.hidden = true;
+  }
+
+  function scheduleSilentAudioNote() {
+    if (!audioSilentNote) return;
+    if (!isIOSAudioUi()) return;
+    if (!current) return;
+    hideSilentAudioNote();
+
+    // If video is playing but audio still isn't after a short delay, show guidance.
+    silentAudioTimer = setTimeout(function () {
+      if (!current) return;
+      try {
+        const r = audio && audio.rainLayer && audio.rainLayer.currentEl;
+        const p = audio && audio.pianoLayer && audio.pianoLayer.currentEl;
+        const rainShouldPlay = audio && audio.rainLayer && !audio.rainLayer._paused && audio.rainLayer._volume > 0.05;
+        const pianoShouldPlay = audio && audio.pianoLayer && !audio.pianoLayer._paused && audio.pianoLayer._volume > 0.05;
+        const rainSilent = rainShouldPlay && r && r.paused;
+        const pianoSilent = pianoShouldPlay && p && p.paused;
+        const videoPlaying = vid && !vid.paused;
+        if (videoPlaying && (rainSilent || pianoSilent)) {
+          audioSilentNote.hidden = false;
+        }
+      } catch (e) {}
+    }, 1400);
   }
 
   function setActivePill(container, value) {
