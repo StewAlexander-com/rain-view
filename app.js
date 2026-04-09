@@ -330,6 +330,13 @@
       setTimeout(function () {
         audio.nudgePlayback();
       }, 400);
+      // Longer retries: cold start + iOS audio session/routing can take a moment (PWA especially).
+      setTimeout(function () {
+        audio.nudgePlayback();
+      }, 1200);
+      setTimeout(function () {
+        audio.nudgePlayback();
+      }, 2500);
     }
   }
 
@@ -393,7 +400,7 @@
 
   function hideSilentAudioNote() {
     if (silentAudioTimer) {
-      clearTimeout(silentAudioTimer);
+      clearInterval(silentAudioTimer);
       silentAudioTimer = null;
     }
     if (audioSilentNote) audioSilentNote.hidden = true;
@@ -406,24 +413,50 @@
     if (!current) return;
     hideSilentAudioNote();
 
-    // If video is playing but audio still isn't after a short delay, show guidance.
-    silentAudioTimer = setTimeout(function () {
-      if (!current) return;
+    // Poll for a few seconds: iOS PWA can take time to create an audio session.
+    const startedAt = performance.now();
+    const graceMs = 1400;
+    const maxMs = 9000;
+
+    silentAudioTimer = setInterval(function () {
+      if (!current) {
+        hideSilentAudioNote();
+        return;
+      }
+      const now = performance.now();
+      if (now - startedAt > maxMs) {
+        clearInterval(silentAudioTimer);
+        silentAudioTimer = null;
+        return;
+      }
+      if (now - startedAt < graceMs) return;
+
       try {
         const r = audio && audio.rainLayer && audio.rainLayer.currentEl;
         const p = audio && audio.pianoLayer && audio.pianoLayer.currentEl;
         const rainShouldPlay = audio && audio.rainLayer && !audio.rainLayer._paused && audio.rainLayer._volume > 0.05;
         const pianoShouldPlay = audio && audio.pianoLayer && !audio.pianoLayer._paused && audio.pianoLayer._volume > 0.05;
-        // Treat "no current element yet" as silent too — iOS can block the first play() entirely.
+        const ctxSuspended = audio && audio._ctx && audio._ctx.state === 'suspended';
+
+        const rainPlaying = !!(r && !r.paused);
+        const pianoPlaying = !!(p && !p.paused);
+
+        // If something is audibly running, hide any warning and stop polling early.
+        if ((rainShouldPlay && rainPlaying) || (pianoShouldPlay && pianoPlaying)) {
+          hideSilentAudioNote();
+          return;
+        }
+
+        // Treat "no current element yet" as silent too — iOS can block first play() entirely.
         const rainSilent = rainShouldPlay && (!r || r.paused);
         const pianoSilent = pianoShouldPlay && (!p || p.paused);
-        const videoPlaying = vid && !vid.paused;
-        if (videoPlaying && (rainSilent || pianoSilent)) {
+
+        if (ctxSuspended || rainSilent || pianoSilent) {
           audioSilentNote.hidden = false;
           if (sceneIosNote) sceneIosNote.hidden = false;
         }
       } catch (e) {}
-    }, 1400);
+    }, 350);
   }
 
   function setActivePill(container, value) {
