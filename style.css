@@ -59,10 +59,10 @@ body{min-height:100dvh;width:100vw;overflow:hidden;font-family:var(--font-body);
 /* Hint */
 .splash-hint{
   display:block;
-  font-size:.65rem;
-  letter-spacing:.14em;
+  font-size:.75rem;
+  letter-spacing:.12em;
   text-transform:uppercase;
-  color:rgba(232,232,236,.22);
+  color:rgba(232,232,236,.45);
   margin-top:1.75rem;
   opacity:0;animation:fadeUp .8s var(--ease) 1.4s forwards;
 }
