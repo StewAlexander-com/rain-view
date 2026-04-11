@@ -46,7 +46,7 @@
    * Bump when any MP3 under assets/ is replaced. Browsers and CDNs cache
    * audio URLs by path; a query string forces a fresh fetch (same file name).
    */
-  var RV_AUDIO_ASSET_VER = '16';
+  var RV_AUDIO_ASSET_VER = '17';
 
   function withAssetVer(path) {
     var sep = path.indexOf('?') >= 0 ? '&' : '?';
@@ -178,7 +178,7 @@
   }
 
   function fetchWholeFileIntoAudio(audioEl, url) {
-    if (typeof global.fetch !== 'function') {
+    if (shouldSkipMES() || typeof global.fetch !== 'function') {
       audioEl.src = url;
       audioEl.load();
       return waitUntilPlayable(audioEl);
@@ -212,7 +212,9 @@
    * so the idle twin can start instantly at loop boundaries.
    */
   function fetchWholeFileIntoDualAudio(elA, elB, url) {
-    if (typeof global.fetch !== 'function') {
+    // iOS: skip blob URLs entirely — they cause MEDIA_ERR_DECODE in PWA mode.
+    // Use plain src URLs which iOS handles natively and reliably.
+    if (shouldSkipMES() || typeof global.fetch !== 'function') {
       elA.src = url;
       elB.src = url;
       elA.load();
@@ -1051,6 +1053,9 @@
 
   AudioEngine.prototype.ensureWebAudio = function () {
     if (this._ctx) return;
+    // iOS: don't create AudioContext at all — MES is skipped, GainNodes are unused,
+    // and the zombie context causes more harm than good.
+    if (shouldSkipMES()) return;
     var Ctx = global.AudioContext || global.webkitAudioContext;
     if (!Ctx) return;
     try {
