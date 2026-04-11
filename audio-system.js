@@ -46,7 +46,7 @@
    * Bump when any MP3 under assets/ is replaced. Browsers and CDNs cache
    * audio URLs by path; a query string forces a fresh fetch (same file name).
    */
-  var RV_AUDIO_ASSET_VER = '15';
+  var RV_AUDIO_ASSET_VER = '16';
 
   function withAssetVer(path) {
     var sep = path.indexOf('?') >= 0 ? '&' : '?';
@@ -91,7 +91,29 @@
     }
   }
 
+  /**
+   * iOS PWA: MediaElementSource causes MEDIA_ERR_DECODE (code 3) when the
+   * AudioContext is in a zombie "running" state (currentTime stuck at 0).
+   * Skip MES entirely on iOS — use element.volume directly instead.
+   */
+  function shouldSkipMES() {
+    try {
+      if (global.RainViewMobile && typeof global.RainViewMobile.isIOSLike === 'function') {
+        return global.RainViewMobile.isIOSLike();
+      }
+      var ua = navigator.userAgent || '';
+      if (/iPad|iPhone|iPod/.test(ua)) return true;
+      if (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) return true;
+    } catch (e) {}
+    return false;
+  }
+
   function tryConnectMES(layer, el) {
+    // iOS: skip MES entirely — it causes decode errors in PWA mode
+    if (shouldSkipMES()) {
+      el._rvMESFailed = true;
+      return false;
+    }
     resumeActiveEngineCtx();
     if (!layer._audioCtx || !layer._gainNode || !el) return false;
     if (!rvAudioContextUsable(layer._audioCtx)) return false;
