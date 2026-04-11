@@ -6,11 +6,13 @@
   const IOS_RAIN_VOL = 0.7;
   const IOS_PIANO_VS_RAIN = 0.33;
 
+  const IS_MOBILE = window.innerWidth <= 640 || ('ontouchstart' in window && window.innerWidth <= 1024);
+
   const SCENES = {
-    tokyo:  { title: 'Tokyo Evening',   video: 'assets/scene-tokyo.mp4',  thumb: 'assets/thumb-tokyo.jpg',  defaultRain: 'window',  defaultPiano: 'contemplative' },
-    nyc:    { title: 'New York Night',   video: 'assets/scene-nyc.mp4',    thumb: 'assets/thumb-nyc.jpg',    defaultRain: 'heavy',   defaultPiano: 'jazz' },
-    autumn: { title: 'Autumn Forest',    video: 'assets/scene-autumn.mp4', thumb: 'assets/thumb-autumn.jpg', defaultRain: 'forest',  defaultPiano: 'melancholic' },
-    garden: { title: 'Zen Garden',       video: 'assets/scene-garden.mp4', thumb: 'assets/thumb-garden.jpg', defaultRain: 'gentle',  defaultPiano: 'ethereal' }
+    tokyo:  { title: 'Tokyo Evening',   video: IS_MOBILE ? 'assets/scene-tokyo-mobile.mp4' : 'assets/scene-tokyo.mp4',  thumb: 'assets/thumb-tokyo.jpg',  defaultRain: 'window',  defaultPiano: 'contemplative' },
+    nyc:    { title: 'New York Night',   video: IS_MOBILE ? 'assets/scene-nyc-mobile.mp4' : 'assets/scene-nyc.mp4',    thumb: 'assets/thumb-nyc.jpg',    defaultRain: 'heavy',   defaultPiano: 'jazz' },
+    autumn: { title: 'Autumn Forest',    video: IS_MOBILE ? 'assets/scene-autumn-mobile.mp4' : 'assets/scene-autumn.mp4', thumb: 'assets/thumb-autumn.jpg', defaultRain: 'forest',  defaultPiano: 'melancholic' },
+    garden: { title: 'Zen Garden',       video: IS_MOBILE ? 'assets/scene-garden-mobile.mp4' : 'assets/scene-garden.mp4', thumb: 'assets/thumb-garden.jpg', defaultRain: 'gentle',  defaultPiano: 'ethereal' }
   };
 
   // DOM refs

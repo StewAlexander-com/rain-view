@@ -332,26 +332,48 @@ input[type="range"]::-moz-range-thumb{
 /* ═══ Mobile ═══ */
 @media(max-width:640px){
   .grid{
-    grid-template-columns:1fr;gap:.7rem;
-    max-height:56vh;overflow-y:auto;
+    grid-template-columns:1fr;gap:.6rem;
+    max-height:58vh;overflow-y:auto;
     scrollbar-width:none;-webkit-overflow-scrolling:touch;
   }
   .grid::-webkit-scrollbar{display:none}
-  .card{aspect-ratio:16/8.5;border-radius:12px}
-  .splash-content{padding:1.5rem 1rem 1rem}
+  .card{aspect-ratio:16/8;border-radius:12px}
+  .splash-content{padding:1.25rem .85rem .85rem}
   .splash-title{letter-spacing:.06em}
+
+  /* Compact controls — maximize immersion area */
+  .ctrl{
+    padding:
+      calc(.85rem + env(safe-area-inset-top,0px))
+      calc(.85rem + env(safe-area-inset-right,0px))
+      calc(.65rem + env(safe-area-inset-bottom,0px))
+      calc(.85rem + env(safe-area-inset-left,0px));
+  }
+  .ctrl-top{gap:.5rem}
+  .btn-back{padding:.45rem .7rem;font-size:.68rem}
+  .ctrl-title{font-size:.9rem}
+
   .ctrl-bottom{
     flex-direction:column;gap:0;
     border-radius:14px;
   }
-  .ctrl-group{padding:.8rem 1rem}
+  .ctrl-group{padding:.6rem .85rem}
   .ctrl-group + .ctrl-group{
     border-left:none;
-    border-top:1px solid rgba(255,255,255,.06);
+    border-top:1px solid rgba(255,255,255,.05);
   }
-  .pills{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+  .ctrl-label{margin-bottom:.45rem;font-size:.52rem}
+  .pills{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:1px;margin-bottom:.5rem}
   .pills::-webkit-scrollbar{display:none}
-  .pill{flex-shrink:0}
+  .pill{flex-shrink:0;padding:4px 9px;font-size:10px}
+  .vol-row{gap:.4rem}
+  .btn-playpause{width:28px;height:28px;border-radius:7px}
+  .btn-playpause svg{width:12px;height:12px}
+  input[type="range"]{height:2px}
+  input[type="range"]::-webkit-slider-thumb{width:11px;height:11px}
+
+  /* Fade scene title after 3s on mobile for max immersion */
+  .ctrl-title{transition:opacity 1s ease}
 }
 
 /* ═══ Accessibility ═══ */
