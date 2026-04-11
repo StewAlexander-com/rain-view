@@ -46,7 +46,7 @@
    * Bump when any MP3 under assets/ is replaced. Browsers and CDNs cache
    * audio URLs by path; a query string forces a fresh fetch (same file name).
    */
-  var RV_AUDIO_ASSET_VER = '17';
+  var RV_AUDIO_ASSET_VER = '18';
 
   function withAssetVer(path) {
     var sep = path.indexOf('?') >= 0 ? '&' : '?';
@@ -907,22 +907,86 @@
     if (this._paused) return;
     if (this._volume < 0.001) return;
     var el = this.currentEl;
-    if (!el || el.error) return;
+    if (!el) return;
+
+    // If the element has a decode error, destroy it and create a fresh one.
+    // iOS PWA cold-start: MEDIA_ERR_DECODE sticks permanently on the element.
+    if (el.error && el.error.code === 3) {
+      var self = this;
+      var gen = this._generation;
+      var src = el.src;
+      var twin = el._rvTwin;
+
+      // Create fresh element
+      var fresh = document.createElement('audio');
+      fresh.loop = false;
+      fresh.preload = 'auto';
+      fresh.setAttribute('playsinline', '');
+      fresh.playsInline = true;
+      fresh._rvMESFailed = true; // iOS: skip MES
+      fresh.src = src;
+      fresh.load();
+
+      // Create fresh twin
+      var freshTwin = document.createElement('audio');
+      freshTwin.loop = false;
+      freshTwin.preload = 'auto';
+      freshTwin.setAttribute('playsinline', '');
+      freshTwin.playsInline = true;
+      freshTwin._rvMESFailed = true;
+      freshTwin.src = src;
+      freshTwin.load();
+
+      fresh._rvTwin = freshTwin;
+      freshTwin._rvTwin = fresh;
+      attachEndedLoopRecovery(self, fresh);
+      attachEndedLoopRecovery(self, freshTwin);
+
+      // Replace in the audios map
+      if (self.currentName && self.audios[self.currentName] === el) {
+        self.audios[self.currentName] = fresh;
+      }
+
+      // Add to DOM, remove old
+      var host = document.getElementById('rain-view-audio-host');
+      if (host) {
+        host.appendChild(fresh);
+        host.appendChild(freshTwin);
+        try { host.removeChild(el); } catch (e) {}
+        if (twin) { try { host.removeChild(twin); } catch (e) {} }
+      }
+
+      self.currentEl = fresh;
+
+      // Wait for the fresh element to be playable, then play
+      waitUntilPlayable(fresh).then(function () {
+        if (gen !== self._generation) return;
+        fresh.volume = self._volume;
+        safePlay(fresh).then(function (ok) {
+          if (ok && gen === self._generation && fresh === self.currentEl) {
+            self.applyVolumeToOutputs();
+            self._startLoopMonitor();
+          }
+        });
+      });
+      return;
+    }
+
     if (!el.paused) return;
-    var self = this;
-    var gen = this._generation;
+    var self2 = this;
+    var gen2 = this._generation;
     resumeActiveEngineCtx();
     function doPlay() {
       safePlay(el).then(function (ok) {
-        if (ok && gen === self._generation && el === self.currentEl) {
-          self.applyVolumeToOutputs();
-          self._startLoopMonitor();
+        if (ok && gen2 === self2._generation && el === self2.currentEl) {
+          self2.applyVolumeToOutputs();
+          self2._startLoopMonitor();
         }
       });
     }
-    if (self._mobileProfile && self._audioCtx) {
-      waitForAudioContextRunning(self._audioCtx, 600).then(function () {
-        if (gen !== self._generation || el !== self.currentEl) return;
+    if (self2._mobileProfile && self2._audioCtx) {
+      waitForAudioContextRunning(self2._audioCtx, 600).then(function () {
+        if (gen2 !== self2._generation || el !== self2.currentEl) return;
         doPlay();
       });
     } else {

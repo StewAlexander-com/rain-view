@@ -529,7 +529,7 @@
     if (!el || !audio) return;
     const lines = [];
     const ts = new Date().toLocaleTimeString();
-    lines.push('=== RAIN VIEW AUDIO DIAG v42 — ' + ts + ' ===');
+    lines.push('=== RAIN VIEW AUDIO DIAG v43 — ' + ts + ' ===');
     lines.push('');
 
     // AudioContext
