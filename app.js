@@ -263,34 +263,34 @@
     if (!s) return;
     current = s;
 
-    // iOS: try to unlock audio immediately inside the tap handler.
+    // ═══ STEP 1: Unlock audio synchronously in the gesture handler ═══
+    // iOS requires play() calls to originate from a user gesture.
+    // mobile.js unlocks all <audio> elements on first touch, but we
+    // also ensure the AudioContext is resumed RIGHT HERE in the click.
     try {
-      if (audio && typeof audio.resumeAudioContextIfNeeded === 'function') {
-        audio.resumeAudioContextIfNeeded();
+      if (typeof RainViewMobile !== 'undefined' && RainViewMobile.unlockAllAudio) {
+        RainViewMobile.unlockAllAudio();
       }
-      if (audio && typeof audio.nudgePlayback === 'function') {
-        audio.nudgePlayback();
+      if (audio) {
+        audio.start(); // creates AudioContext if needed
+        audio.resumeAudioContextIfNeeded();
       }
     } catch (e0) {}
 
-    // Video
+    // ═══ STEP 2: Start video (muted — always works) ═══
     try {
-      // Ensure we always have *something* visible while the MP4 is still buffering on iOS.
-      // Using the thumb as a poster prevents the "black screen" first impression.
       vid.poster = s.thumb || '';
       vid.preload = 'auto';
       vid.playsInline = true;
       vid.muted = true;
-    } catch (e) {}
-    vid.src = s.video;
-    try {
-      // Helps some iOS versions attach the new src immediately.
+      vid.src = s.video;
       vid.load();
-    } catch (e2) {}
-    safePlayVideo(5).then(() => {});
+    } catch (e) {}
+    // Synchronous play attempt in the gesture — best chance of working
+    safePlayVideo(6).then(() => {});
     titleEl.textContent = s.title;
 
-    // Set default variants
+    // ═══ STEP 3: Set UI state ═══
     setActivePill(rainPills, s.defaultRain);
     setActivePill(pianoPills, s.defaultPiano);
 
@@ -299,20 +299,18 @@
     rainVol.value = String(rainLevel);
     pianoVol.value = String(pianoLevel);
 
-    // Transition
     splash.classList.add('hidden');
     sceneEl.classList.remove('hidden');
     hideSilentAudioNote();
 
-    // Audio — isolate failures so video/UI still boot even if iOS blocks audio at first.
+    // ═══ STEP 4: Start audio ═══
+    // Set volumes BEFORE switching variants so the layer doesn't
+    // play at default volume briefly before the gain is applied.
     try {
-      // Set levels before start() so ensureWebAudio() picks up correct _volume (not default 1).
       audio.setRainVolume(rainLevel);
       audio.setPianoVolume(pianoLevel);
-      audio.start();
       audio.setRainVariant(s.defaultRain);
       audio.setPianoVariant(s.defaultPiano);
-      // Critical: attempt actual playback again *after* variants are set, inside the same gesture.
       if (typeof audio.nudgePlayback === 'function') {
         audio.nudgePlayback();
       }
@@ -321,25 +319,28 @@
     syncPlayPauseUi();
     showCtrl();
 
-    scheduleSilentAudioNote();
+    // ═══ STEP 5: Retry cascade for iOS ═══
+    // iOS PWA often needs multiple nudges as the audio session
+    // takes time to fully initialize. Space retries across the
+    // first few seconds to catch various iOS timing windows.
+    const nudgeDelays = [50, 150, 400, 800, 1500, 3000];
+    nudgeDelays.forEach(delay => {
+      setTimeout(function () {
+        if (!current) return;
+        try {
+          audio.resumeAudioContextIfNeeded();
+          if (typeof audio.nudgePlayback === 'function') {
+            audio.nudgePlayback();
+          }
+        } catch (e) {}
+        // Also retry video if it stalled
+        if (vid.paused && current) {
+          safePlayVideo(2).then(() => {});
+        }
+      }, delay);
+    });
 
-    /* iOS / PWA: first play often lands outside strict activation; re-nudge after resume + decode settle. */
-    if (isIOSAudioUi() && typeof audio.nudgePlayback === 'function') {
-      audio.nudgePlayback();
-      setTimeout(function () {
-        audio.nudgePlayback();
-      }, 100);
-      setTimeout(function () {
-        audio.nudgePlayback();
-      }, 400);
-      // Longer retries: cold start + iOS audio session/routing can take a moment (PWA especially).
-      setTimeout(function () {
-        audio.nudgePlayback();
-      }, 1200);
-      setTimeout(function () {
-        audio.nudgePlayback();
-      }, 2500);
-    }
+    scheduleSilentAudioNote();
   }
 
   function prepareScene(id) {
@@ -349,7 +350,10 @@
     if (!s) return;
     lastPreparedSceneId = id;
 
-    // Begin buffering the MP4 early (video is in DOM even while scene is hidden).
+    // Only prebuffer the video on pointerdown/touchstart.
+    // Do NOT start audio here — on iOS, creating/resuming an
+    // AudioContext outside of a click/touchend handler wastes
+    // the gesture activation window.
     try {
       if (vid) {
         vid.poster = s.thumb || '';
@@ -362,20 +366,6 @@
         }
       }
     } catch (e) {}
-
-    // Begin warming audio graph + selecting variants early.
-    try {
-      const rainLevel = isIOSAudioUi() ? IOS_RAIN_VOL : 0.7;
-      const pianoLevel = isIOSAudioUi() ? IOS_RAIN_VOL * IOS_PIANO_VS_RAIN : 0;
-      audio.setRainVolume(rainLevel);
-      audio.setPianoVolume(pianoLevel);
-      audio.start();
-      audio.setRainVariant(s.defaultRain);
-      audio.setPianoVariant(s.defaultPiano);
-      if (typeof audio.nudgePlayback === 'function') {
-        audio.nudgePlayback();
-      }
-    } catch (e2) {}
   }
 
   function syncPlayPauseUi() {
