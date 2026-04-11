@@ -60,12 +60,13 @@ body{min-height:100dvh;width:100vw;overflow:hidden;font-family:var(--font-body);
 .splash-hint{
   display:inline-block;
   font-family:'EB Garamond','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;
-  font-size:.82rem;
-  font-weight:400;
-  letter-spacing:.08em;
+  font-size:.92rem;
+  font-weight:500;
+  letter-spacing:.18em;
+  text-transform:uppercase;
   color:rgba(235,225,180,.55);
   margin-top:1.75rem;
-  padding:.5rem 1.4rem;
+  padding:.55rem 1.6rem;
   border-radius:var(--r-pill);
   background:rgba(255,255,255,.04);
   border:1px solid rgba(235,225,180,.1);
