@@ -263,16 +263,15 @@
     if (!s) return;
     current = s;
 
-    // ═══ STEP 1: Unlock audio synchronously in the gesture handler ═══
-    // iOS requires play() calls to originate from a user gesture.
-    // mobile.js unlocks all <audio> elements on first touch, but we
-    // also ensure the AudioContext is resumed RIGHT HERE in the click.
+    // ═══ STEP 1: Activate iOS audio session in the gesture handler ═══
+    // mobile.js plays a silent MP3 + creates/resumes AudioContext.
+    // This must happen synchronously in the click handler.
     try {
-      if (typeof RainViewMobile !== 'undefined' && RainViewMobile.unlockAllAudio) {
-        RainViewMobile.unlockAllAudio();
+      if (typeof RainViewMobile !== 'undefined' && RainViewMobile.activateAudioSession) {
+        RainViewMobile.activateAudioSession();
       }
       if (audio) {
-        audio.start(); // creates AudioContext if needed
+        audio.start(); // creates AudioContext if not already
         audio.resumeAudioContextIfNeeded();
       }
     } catch (e0) {}
@@ -319,22 +318,28 @@
     syncPlayPauseUi();
     showCtrl();
 
-    // ═══ STEP 5: Retry cascade for iOS ═══
-    // iOS PWA often needs multiple nudges as the audio session
-    // takes time to fully initialize. Space retries across the
-    // first few seconds to catch various iOS timing windows.
-    const nudgeDelays = [50, 150, 400, 800, 1500, 3000];
+    // ═══ STEP 5: Retry cascade ═══
+    // iOS audio session can take time to fully initialize.
+    // Retry at increasing intervals to catch various timing windows.
+    // Also retry video if it stalled during initial buffering.
+    const nudgeDelays = [50, 150, 350, 700, 1200, 2000, 3500];
     nudgeDelays.forEach(delay => {
       setTimeout(function () {
         if (!current) return;
         try {
+          // Resume AudioContext if iOS suspended it
           audio.resumeAudioContextIfNeeded();
+          // Recover any layers that should be playing but aren't
           if (typeof audio.nudgePlayback === 'function') {
             audio.nudgePlayback();
           }
+          // Also call mobile nudge which does additional iOS checks
+          if (typeof RainViewMobile !== 'undefined' && RainViewMobile.nudge) {
+            RainViewMobile.nudge();
+          }
         } catch (e) {}
-        // Also retry video if it stalled
-        if (vid.paused && current) {
+        // Retry video if it stalled
+        if (vid && vid.paused && current) {
           safePlayVideo(2).then(() => {});
         }
       }, delay);
@@ -481,6 +486,122 @@
   function showCtrl() { ctrl.classList.remove('hidden'); }
   function hideCtrl() { ctrl.classList.add('hidden'); }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else init();
+  // ═══ Audio Diagnostic Panel ═══
+  // Triple-tap the scene title to show/hide real-time audio state.
+  // This is our "House diagnostic" — shows exactly what's happening.
+  let diagVisible = false;
+  let diagInterval = null;
+  let titleTapCount = 0;
+  let titleTapTimer = null;
+
+  function setupDiagnostic() {
+    const diagEl = document.getElementById('audio-diag');
+    if (!diagEl || !titleEl) return;
+
+    titleEl.style.pointerEvents = 'auto';
+    titleEl.style.cursor = 'pointer';
+    titleEl.addEventListener('click', function (e) {
+      e.stopPropagation();
+      titleTapCount++;
+      clearTimeout(titleTapTimer);
+      titleTapTimer = setTimeout(() => { titleTapCount = 0; }, 600);
+      if (titleTapCount >= 3) {
+        titleTapCount = 0;
+        diagVisible = !diagVisible;
+        diagEl.hidden = !diagVisible;
+        if (diagVisible) startDiagLoop(diagEl);
+        else stopDiagLoop();
+      }
+    });
+  }
+
+  function startDiagLoop(diagEl) {
+    stopDiagLoop();
+    diagInterval = setInterval(() => updateDiag(diagEl), 400);
+    updateDiag(diagEl);
+  }
+
+  function stopDiagLoop() {
+    if (diagInterval) { clearInterval(diagInterval); diagInterval = null; }
+  }
+
+  function updateDiag(el) {
+    if (!el || !audio) return;
+    const lines = [];
+    const ts = new Date().toLocaleTimeString();
+    lines.push('=== RAIN VIEW AUDIO DIAG ' + ts + ' ===');
+    lines.push('');
+
+    // AudioContext
+    const ctx = audio._ctx;
+    lines.push('AudioContext: ' + (ctx ? ctx.state : 'NOT CREATED'));
+    if (ctx) lines.push('  sampleRate: ' + ctx.sampleRate + ' | currentTime: ' + ctx.currentTime.toFixed(2));
+
+    // Mobile state
+    const mob = typeof RainViewMobile !== 'undefined' ? RainViewMobile : null;
+    if (mob) {
+      lines.push('Mobile unlock: ' + (mob.isUnlocked ? mob.isUnlocked() : '?'));
+      lines.push('Audio session: ' + (mob.isAudioSessionActive ? mob.isAudioSessionActive() : '?'));
+      lines.push('iOS detected: ' + (mob.isIOSLike ? mob.isIOSLike() : '?'));
+    }
+
+    // Rain layer
+    lines.push('');
+    lines.push('--- RAIN LAYER ---');
+    const rl = audio.rainLayer;
+    if (rl) {
+      lines.push('variant: ' + (rl.currentName || 'none'));
+      lines.push('volume: ' + rl._volume.toFixed(2) + ' | paused: ' + rl._paused);
+      const re = rl.currentEl;
+      if (re) {
+        lines.push('element: paused=' + re.paused + ' ended=' + re.ended);
+        lines.push('  src: ' + (re.src ? re.src.substring(0, 50) + '...' : 'EMPTY'));
+        lines.push('  readyState=' + re.readyState + ' networkState=' + re.networkState);
+        lines.push('  currentTime=' + re.currentTime.toFixed(2) + ' duration=' + (re.duration || 0).toFixed(2));
+        lines.push('  volume=' + re.volume.toFixed(2) + ' muted=' + re.muted);
+        lines.push('  MES: ' + (re._rvMES ? 'connected' : 'none') + ' | MES failed: ' + (re._rvMESFailed || false));
+        if (re._rvElementGain) lines.push('  elementGain: ' + re._rvElementGain.gain.value.toFixed(3));
+        if (re.error) lines.push('  ERROR: code=' + re.error.code + ' msg=' + re.error.message);
+      } else {
+        lines.push('element: NONE');
+      }
+      if (rl._gainNode) lines.push('gainNode: ' + rl._gainNode.gain.value.toFixed(3));
+    }
+
+    // Piano layer
+    lines.push('');
+    lines.push('--- PIANO LAYER ---');
+    const pl = audio.pianoLayer;
+    if (pl) {
+      lines.push('variant: ' + (pl.currentName || 'none'));
+      lines.push('volume: ' + pl._volume.toFixed(2) + ' | paused: ' + pl._paused);
+      const pe = pl.currentEl;
+      if (pe) {
+        lines.push('element: paused=' + pe.paused + ' ended=' + pe.ended);
+        lines.push('  readyState=' + pe.readyState + ' networkState=' + pe.networkState);
+        lines.push('  currentTime=' + pe.currentTime.toFixed(2));
+        lines.push('  MES: ' + (pe._rvMES ? 'connected' : 'none') + ' | MES failed: ' + (pe._rvMESFailed || false));
+      }
+    }
+
+    // Video
+    lines.push('');
+    lines.push('--- VIDEO ---');
+    if (vid) {
+      lines.push('paused=' + vid.paused + ' muted=' + vid.muted);
+      lines.push('readyState=' + vid.readyState + ' currentTime=' + vid.currentTime.toFixed(2));
+    }
+
+    el.textContent = lines.join('\n');
+  }
+
+  function postInit() {
+    setupDiagnostic();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { init(); postInit(); });
+  } else {
+    init(); postInit();
+  }
 })();

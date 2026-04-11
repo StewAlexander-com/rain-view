@@ -1,18 +1,37 @@
-/* Rain View — mobile / PWA audio bootstrap
-   iOS Safari & PWA require play() to be called synchronously inside a
-   user-gesture handler (touchend / click). Once an <audio> element has
-   been "unlocked" this way it can be programmatically controlled later.
-
-   Strategy:
-   1. On the FIRST touch/click anywhere, call play() then immediately
-      pause() on EVERY <audio> element in the page. This "unlocks" them.
-   2. Resume the AudioContext in the same gesture.
-   3. On subsequent scene enters, play() will work because the elements
-      are already unlocked.
-*/
+/* ═══════════════════════════════════════════════════════════════════
+   Rain View — iOS / mobile audio bootstrap
+   
+   DIAGNOSIS: iOS Safari & PWA have THREE gates that block audio:
+   
+   Gate 1 — AudioContext must be created inside a user gesture
+   Gate 2 — AudioContext.resume() must be called inside a user gesture
+   Gate 3 — HTMLAudioElement.play() must be called inside a user gesture
+            (only the FIRST call per element needs this; after that it's
+            "unlocked" and can be called programmatically)
+   
+   The audio-system.js uses fetch()→blob URLs + dual <audio> elements
+   per variant + MediaElementSource routing. By the time blobs load,
+   the gesture window is gone. So we need a different strategy:
+   
+   STRATEGY:
+   - On page load, create a tiny silent audio element (data URI)
+   - On first touchend/click, play that silent element (unlocks audio session)
+   - In the same gesture, create + resume AudioContext
+   - The audio-system's blob-loaded elements can then play() without
+     needing their own gesture, because the iOS audio session is now active
+   - Keep nudging on every subsequent touch (iOS PWA can re-suspend)
+   ═══════════════════════════════════════════════════════════════════ */
 
 (function (global) {
   'use strict';
+
+  // Tiny silent MP3 (173 bytes) — valid MP3 frame, completely silent
+  var SILENT_MP3 = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABhgC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAYYoRwMHAAAAAAD/+1DEAAAGAANIAAAARAW0AAADSA';
+
+  var _silentEl = null;
+  var _unlocked = false;
+  var _engine = null;
+  var _audioSessionActive = false;
 
   function isIOSLike() {
     var ua = navigator.userAgent || '';
@@ -33,126 +52,129 @@
     return false;
   }
 
-  var _unlocked = false;
-  var _engine = null;
+  /**
+   * Create silent audio element on page load (not in gesture — just create it).
+   */
+  function createSilentElement() {
+    if (_silentEl) return _silentEl;
+    _silentEl = document.createElement('audio');
+    _silentEl.setAttribute('playsinline', '');
+    _silentEl.playsInline = true;
+    _silentEl.src = SILENT_MP3;
+    _silentEl.preload = 'auto';
+    _silentEl.loop = false;
+    _silentEl.volume = 0.01; // near-silent but not zero (iOS ignores volume=0)
+    // Add to DOM (some iOS versions need it in DOM)
+    _silentEl.style.cssText = 'position:fixed;width:0;height:0;opacity:0;pointer-events:none';
+    document.body.appendChild(_silentEl);
+    return _silentEl;
+  }
 
   /**
-   * Synchronous unlock: call play()+pause() on every <audio> in the DOM.
-   * This must run inside a direct user gesture (touchend, click).
-   * After this, iOS allows programmatic play() on these elements.
+   * Called synchronously inside touchend/click.
+   * Activates the iOS audio session by playing the silent element.
    */
-  function unlockAllAudio() {
-    if (_unlocked) return;
+  function activateAudioSession() {
+    if (_audioSessionActive && _unlocked) return;
 
-    // Unlock AudioContext
+    // Step 1: Play the silent element to activate iOS audio session
+    var el = _silentEl || createSilentElement();
+    try {
+      el.currentTime = 0;
+      el.volume = 0.01;
+      var p = el.play();
+      if (p && typeof p.then === 'function') {
+        p.then(function () {
+          _audioSessionActive = true;
+        }).catch(function () {});
+      }
+    } catch (e) {}
+
+    // Step 2: Create + resume AudioContext
     if (_engine) {
       try {
-        if (typeof _engine.ensureWebAudio === 'function') _engine.ensureWebAudio();
-        if (_engine._ctx && _engine._ctx.state === 'suspended') {
-          _engine._ctx.resume().catch(function () {});
+        if (typeof _engine.ensureWebAudio === 'function') {
+          _engine.ensureWebAudio();
+        }
+        if (_engine._ctx) {
+          if (_engine._ctx.state === 'suspended') {
+            var rp = _engine._ctx.resume();
+            if (rp && typeof rp.then === 'function') rp.catch(function () {});
+          }
         }
       } catch (e) {}
-    }
-
-    // Unlock every <audio> element by doing play() + immediate pause()
-    var allAudio = document.querySelectorAll('audio');
-    for (var i = 0; i < allAudio.length; i++) {
-      var el = allAudio[i];
-      try {
-        // Set to a silent state first
-        el.volume = 0;
-        el.muted = true;
-        var p = el.play();
-        if (p && typeof p.then === 'function') {
-          // Capture in closure to pause after play resolves
-          (function (audioEl) {
-            p.then(function () {
-              audioEl.pause();
-              audioEl.currentTime = 0;
-              audioEl.muted = false;
-            }).catch(function () {
-              audioEl.muted = false;
-            });
-          })(el);
-        } else {
-          el.pause();
-          el.currentTime = 0;
-          el.muted = false;
-        }
-      } catch (e) {
-        try { el.muted = false; } catch (e2) {}
-      }
     }
 
     _unlocked = true;
   }
 
   /**
-   * Install gesture listeners that unlock audio on first interaction.
-   * Uses capture phase to fire before app.js handlers.
+   * Nudge: resume AudioContext + retry any paused layers.
+   * Safe to call frequently.
    */
-  function installGestureUnlock(engine) {
+  function nudge() {
+    if (!_engine) return;
+    try {
+      if (_engine._ctx && _engine._ctx.state === 'suspended') {
+        var p = _engine._ctx.resume();
+        if (p && typeof p.then === 'function') p.catch(function () {});
+      }
+      if (typeof _engine.nudgePlayback === 'function') {
+        _engine.nudgePlayback();
+      }
+    } catch (e) {}
+  }
+
+  /**
+   * Install gesture listeners.
+   */
+  function installGestureHandlers(engine) {
     _engine = engine;
 
+    // Create silent element immediately
+    createSilentElement();
+
     function onGesture() {
-      unlockAllAudio();
-
-      // Also nudge playback on every gesture (iOS PWA can re-suspend)
-      if (_engine) {
-        try {
-          if (_engine._ctx && _engine._ctx.state === 'suspended') {
-            _engine._ctx.resume().catch(function () {});
-          }
-          if (typeof _engine.nudgePlayback === 'function') {
-            _engine.nudgePlayback();
-          }
-        } catch (e) {}
-      }
-
-      // On non-iOS, remove listeners after first successful unlock
-      if (!isIOSLike() && _unlocked) {
-        document.removeEventListener('touchend', onGesture, true);
-        document.removeEventListener('click', onGesture, true);
-      }
+      activateAudioSession();
+      nudge();
     }
 
-    // touchend and click are the ONLY events iOS counts as user activation
+    // touchend and click — the ONLY events iOS counts as user activation
+    // Use capture phase to fire before app.js click handlers
     document.addEventListener('touchend', onGesture, { capture: true, passive: true });
     document.addEventListener('click', onGesture, { capture: true, passive: true });
 
-    // iOS PWA: coming back from app switch can suspend audio again
+    // iOS PWA: audio session can die when app is backgrounded/foregrounded
     document.addEventListener('visibilitychange', function () {
       if (document.hidden) return;
-      if (_engine) {
-        try {
-          if (_engine._ctx && _engine._ctx.state === 'suspended') {
-            _engine._ctx.resume().catch(function () {});
-          }
-          if (typeof _engine.nudgePlayback === 'function') {
-            _engine.nudgePlayback();
-          }
-        } catch (e) {}
-      }
+      // Don't call activateAudioSession here — no gesture.
+      // Just nudge (resume context + retry paused layers).
+      nudge();
     });
 
-    global.addEventListener('pageshow', function () {
-      if (_engine && typeof _engine.nudgePlayback === 'function') {
-        _engine.nudgePlayback();
-      }
+    global.addEventListener('pageshow', function (ev) {
+      nudge();
+    });
+
+    global.addEventListener('focus', function () {
+      if (!isMobileAudioDevice()) return;
+      nudge();
     });
   }
 
   function configureRainViewMobileAudio(engine) {
     _engine = engine;
     if (!isMobileAudioDevice()) return;
-    installGestureUnlock(engine);
+    installGestureHandlers(engine);
   }
 
   global.RainViewMobile = {
     isIOSLike: isIOSLike,
     isMobileAudioDevice: isMobileAudioDevice,
     configureRainViewMobileAudio: configureRainViewMobileAudio,
-    unlockAllAudio: unlockAllAudio,
-    isUnlocked: function () { return _unlocked; }
+    activateAudioSession: activateAudioSession,
+    nudge: nudge,
+    isUnlocked: function () { return _unlocked; },
+    isAudioSessionActive: function () { return _audioSessionActive; }
   };
 })(typeof window !== 'undefined' ? window : this);

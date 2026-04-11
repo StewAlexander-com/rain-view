@@ -376,6 +376,17 @@ input[type="range"]::-moz-range-thumb{
   .ctrl-title{transition:opacity 1s ease}
 }
 
+/* ═══ Audio Diagnostic Overlay ═══ */
+.audio-diag{
+  position:absolute;top:60px;left:10px;right:10px;z-index:99;
+  padding:10px 12px;border-radius:10px;
+  background:rgba(0,0,0,.85);backdrop-filter:blur(8px);
+  border:1px solid rgba(235,225,180,.2);
+  font-family:'SF Mono',Menlo,monospace;font-size:10px;line-height:1.5;
+  color:rgba(235,225,180,.8);white-space:pre-wrap;overflow:auto;max-height:40vh;
+  pointer-events:none;
+}
+
 /* ═══ Accessibility ═══ */
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
