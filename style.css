@@ -55,6 +55,10 @@ body{min-height:100dvh;width:100vw;overflow:hidden;font-family:var(--font-body);
   margin-top:.6rem;
   opacity:0;animation:fadeUp .8s var(--ease) .7s forwards;
 }
+.splash-accent{
+  color:rgba(212,185,106,.7);
+  font-weight:400;
+}
 
 /* Hint */
 .splash-hint{
