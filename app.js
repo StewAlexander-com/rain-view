@@ -502,70 +502,68 @@
   function hideCtrl() { ctrl.classList.add('hidden'); }
 
   // ═══ Seamless video crossfade loop ═══
-  // Two identical videos offset by half the clip duration.
-  // When vid A approaches its end, vid B fades in already playing
-  // at the right timecode, creating a seamless infinite loop.
+  // Vid A loops natively (never stops/seeks).
+  // Vid B is a brief overlay that fades in around the loop seam
+  // to mask the jump, then fades back out. Vid A is never interrupted.
   function startCrossfadeLoop(videoSrc) {
     stopCrossfadeLoop();
     if (!vid || !vid2) return;
 
-    // Both videos get the same source
     vid2.src = videoSrc;
     vid2.muted = true;
     vid2.playsInline = true;
     vid2.load();
     vid2.classList.remove('visible');
-    vid.classList.remove('fading');
 
-    // Wait for vid A to have duration info
     function beginLoop() {
       var dur = vid.duration;
       if (!dur || isNaN(dur) || dur < 2) return;
 
-      var fadeTime = 1.5; // matches CSS transition duration
-      var halfDur = dur / 2;
+      // Vid B will play a segment from the middle of the clip
+      // that bridges across the loop point of vid A
+      var bridgeStart = dur * 0.3;  // start playing from 30% in
+      var fadeInTime = 1.5;         // seconds, matches CSS transition
 
-      // Start vid B at the halfway point, paused, ready to go
-      vid2.currentTime = halfDur;
-
-      function scheduleCrossfade() {
+      function scheduleNext() {
         if (!current) return;
+
+        // Schedule the bridge to start fading in 1.5s before vid A's loop point
         var timeLeft = dur - vid.currentTime;
-        var delay = Math.max(0, (timeLeft - fadeTime) * 1000);
+        var delay = Math.max(0, (timeLeft - fadeInTime) * 1000);
 
         crossfadeTimer = setTimeout(function () {
           if (!current) return;
 
-          // Skip crossfade when clock is active — the opacity dip
-          // shows through the dim overlay as visible blinking
+          // Skip when clock is active (dim overlay amplifies any opacity change)
           var clockOverlay = document.getElementById('clock-overlay');
           if (clockOverlay && !clockOverlay.classList.contains('hidden')) {
-            // Just let vid A loop natively and reschedule
-            scheduleCrossfade();
+            scheduleNext();
             return;
           }
 
-          // Start vid B playing from half-duration offset
-          vid2.currentTime = halfDur;
+          // Fade vid B in — it plays a middle segment over the seam
+          vid2.currentTime = bridgeStart;
           vid2.play().catch(function () {});
           vid2.classList.add('visible');
-          vid.classList.add('fading');
 
-          // After the CSS fade completes, swap roles
+          // After vid A has looped and is playing smoothly again, fade B out
           setTimeout(function () {
             if (!current) return;
-            vid.classList.remove('fading');
-            vid.currentTime = 0;
-            vid.play().catch(function () {});
-
             vid2.classList.remove('visible');
 
-            scheduleCrossfade();
-          }, fadeTime * 1000 + 100);
+            // Pause vid B after fade-out completes to save resources
+            setTimeout(function () {
+              if (vid2 && !vid2.classList.contains('visible')) {
+                vid2.pause();
+              }
+            }, fadeInTime * 1000);
+
+            scheduleNext();
+          }, fadeInTime * 1000 + 500);
         }, delay);
       }
 
-      scheduleCrossfade();
+      scheduleNext();
     }
 
     if (vid.readyState >= 1 && vid.duration) {
@@ -586,7 +584,6 @@
       vid2.src = '';
       vid2.classList.remove('visible');
     }
-    if (vid) vid.classList.remove('fading');
   }
 
   // ═══ Audio Diagnostic Panel ═══
