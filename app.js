@@ -19,6 +19,7 @@
   const splash    = document.getElementById('splash');
   const sceneEl   = document.getElementById('scene');
   const vid       = document.getElementById('vid');
+  const vid2      = document.getElementById('vid2');
   const titleEl   = document.getElementById('title');
   const ctrl      = document.getElementById('ctrl');
   const backBtn   = document.getElementById('back');
@@ -39,6 +40,7 @@
   let audioHintTimer = null;
   let lastPreparedSceneId = null;
   let silentAudioTimer = null;
+  let crossfadeTimer = null;
 
   function safePlayVideo(maxAttempts) {
     maxAttempts = maxAttempts != null ? maxAttempts : 4;
@@ -287,6 +289,7 @@
     } catch (e) {}
     // Synchronous play attempt in the gesture — best chance of working
     safePlayVideo(6).then(() => {});
+    startCrossfadeLoop(s.video);
     titleEl.textContent = s.title;
 
     // ═══ STEP 3: Set UI state ═══
@@ -386,6 +389,7 @@
 
   function exitScene() {
     exitFullscreenIfActive().then(() => syncFullscreenUi());
+    stopCrossfadeLoop();
     vid.pause();
     vid.src = '';
     audio.stopAll();
@@ -496,6 +500,88 @@
 
   function showCtrl() { ctrl.classList.remove('hidden'); }
   function hideCtrl() { ctrl.classList.add('hidden'); }
+
+  // ═══ Seamless video crossfade loop ═══
+  // Two identical videos offset by half the clip duration.
+  // When vid A approaches its end, vid B fades in already playing
+  // at the right timecode, creating a seamless infinite loop.
+  function startCrossfadeLoop(videoSrc) {
+    stopCrossfadeLoop();
+    if (!vid || !vid2) return;
+
+    // Both videos get the same source
+    vid2.src = videoSrc;
+    vid2.muted = true;
+    vid2.playsInline = true;
+    vid2.load();
+    vid2.classList.remove('visible');
+    vid.classList.remove('fading');
+
+    // Wait for vid A to have duration info
+    function beginLoop() {
+      var dur = vid.duration;
+      if (!dur || isNaN(dur) || dur < 2) return;
+
+      var fadeTime = 1.5; // matches CSS transition duration
+      var halfDur = dur / 2;
+
+      // Start vid B at the halfway point, paused, ready to go
+      vid2.currentTime = halfDur;
+
+      function scheduleCrossfade() {
+        if (!current) return;
+        var timeLeft = dur - vid.currentTime;
+        var delay = Math.max(0, (timeLeft - fadeTime) * 1000);
+
+        crossfadeTimer = setTimeout(function () {
+          if (!current) return;
+
+          // Start vid B playing from half-duration offset
+          vid2.currentTime = halfDur;
+          vid2.play().catch(function () {});
+          vid2.classList.add('visible');
+          vid.classList.add('fading');
+
+          // After the CSS fade completes, swap roles
+          setTimeout(function () {
+            if (!current) return;
+            // Reset vid A to the beginning and get it ready for next crossfade
+            vid.classList.remove('fading');
+            vid.currentTime = 0;
+            vid.play().catch(function () {});
+
+            // Fade vid B back out
+            vid2.classList.remove('visible');
+
+            // Schedule next crossfade
+            scheduleCrossfade();
+          }, fadeTime * 1000 + 100);
+        }, delay);
+      }
+
+      scheduleCrossfade();
+    }
+
+    if (vid.readyState >= 1 && vid.duration) {
+      beginLoop();
+    } else {
+      vid.addEventListener('loadedmetadata', function onMeta() {
+        vid.removeEventListener('loadedmetadata', onMeta);
+        beginLoop();
+      });
+    }
+  }
+
+  function stopCrossfadeLoop() {
+    clearTimeout(crossfadeTimer);
+    crossfadeTimer = null;
+    if (vid2) {
+      vid2.pause();
+      vid2.src = '';
+      vid2.classList.remove('visible');
+    }
+    if (vid) vid.classList.remove('fading');
+  }
 
   // ═══ Audio Diagnostic Panel ═══
   // Triple-tap the scene title to show/hide real-time audio state.
