@@ -48,12 +48,12 @@ body{min-height:100dvh;width:100vw;overflow:hidden;font-family:var(--font-body);
 /* Subtitle */
 .splash-sub{
   font-family:'EB Garamond','Palatino Linotype',Palatino,Georgia,serif;
-  font-size:clamp(1.15rem,.85rem+1.3vw,1.65rem);
+  font-size:clamp(1.8rem,1.2rem+2.5vw,2.8rem);
   font-weight:400;
   font-style:italic;
   letter-spacing:.12em;
   color:rgba(220,215,200,.4);
-  margin-top:.7rem;
+  margin-top:1.2rem;margin-bottom:.5rem;
   opacity:0;animation:fadeUp .8s var(--ease) .7s forwards;
   /* Shimmer */
   background:linear-gradient(
@@ -104,7 +104,7 @@ body{min-height:100dvh;width:100vw;overflow:hidden;font-family:var(--font-body);
   display:grid;
   grid-template-columns:repeat(2,1fr);
   gap:1.1rem;
-  margin-top:2.8rem;
+  margin-top:1.5rem;
   opacity:0;animation:fadeUp 1s var(--ease) 1s forwards;
   transform:translateY(14px);
 }
