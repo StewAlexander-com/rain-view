@@ -48,16 +48,34 @@ body{min-height:100dvh;width:100vw;overflow:hidden;font-family:var(--font-body);
 /* Subtitle */
 .splash-sub{
   font-family:'EB Garamond','Palatino Linotype',Palatino,Georgia,serif;
-  font-size:clamp(.95rem,.7rem+1vw,1.35rem);
+  font-size:clamp(1.15rem,.85rem+1.3vw,1.65rem);
   font-weight:400;
   font-style:italic;
   letter-spacing:.12em;
   color:rgba(220,215,200,.4);
   margin-top:.7rem;
   opacity:0;animation:fadeUp .8s var(--ease) .7s forwards;
+  /* Shimmer */
+  background:linear-gradient(
+    90deg,
+    rgba(220,215,200,.4) 0%,
+    rgba(220,215,200,.4) 35%,
+    rgba(235,225,195,.75) 50%,
+    rgba(220,215,200,.4) 65%,
+    rgba(220,215,200,.4) 100%
+  );
+  background-size:200% 100%;
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  animation:fadeUp .8s var(--ease) .7s forwards,shimmer 4s ease-in-out 2s infinite;
+}
+@keyframes shimmer{
+  0%{background-position:200% 0}
+  100%{background-position:-200% 0}
 }
 .splash-accent{
-  color:rgba(220,215,200,.58);
+  -webkit-text-fill-color:rgba(230,222,200,.62);
   font-weight:400;
 }
 
