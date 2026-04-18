@@ -68,7 +68,7 @@ body{min-height:100dvh;width:100vw;overflow:hidden;font-family:var(--font-body);
   -webkit-background-clip:text;
   -webkit-text-fill-color:transparent;
   background-clip:text;
-  animation:fadeUp .8s var(--ease) .7s forwards,shimmer 4s ease-in-out 2s infinite;
+  animation:fadeUp .8s var(--ease) .7s forwards,shimmer 12s ease-in-out 2s infinite;
 }
 @keyframes shimmer{
   0%{background-position:200% 0}
