@@ -376,6 +376,92 @@ input[type="range"]::-moz-range-thumb{
   .ctrl-title{transition:opacity 1s ease}
 }
 
+/* ═══ Clock Button ═══ */
+.btn-clock{
+  flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
+  width:36px;height:36px;padding:0;
+  border:1px solid var(--c-border);border-radius:10px;
+  background:var(--c-surface);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));
+  color:rgba(235,225,180,.5);cursor:pointer;
+  transition:all .3s var(--ease);
+}
+.btn-clock:hover{background:var(--c-surface-hover);color:rgba(235,225,180,.85);border-color:var(--c-border-hover)}
+.btn-clock.is-active{color:rgba(235,225,180,.9);border-color:rgba(235,225,180,.25);background:rgba(235,225,180,.08)}
+
+/* ═══ Clock Overlay ═══ */
+.clock-overlay{
+  position:absolute;inset:0;z-index:5;
+  display:flex;align-items:center;justify-content:center;
+  transition:opacity .8s var(--ease-out),visibility .8s;
+  pointer-events:none;
+}
+.clock-overlay.hidden{opacity:0;visibility:hidden}
+
+/* Dim layer behind clock */
+.clock-dim{
+  position:absolute;inset:0;
+  background:rgba(0,0,0,.35);
+  pointer-events:none;
+}
+
+.clock-container{
+  position:relative;z-index:1;
+  display:flex;flex-direction:column;align-items:center;gap:.75rem;
+  touch-action:none; /* enables pinch gesture capture */
+  pointer-events:auto;
+}
+
+.clock-face{
+  display:flex;align-items:baseline;gap:.3em;
+  /* Bezeled gold effect */
+  color:#d4b96a;
+  text-shadow:
+    0 1px 0 #b8973e,
+    0 2px 0 #a6863a,
+    0 3px 4px rgba(0,0,0,.45),
+    0 0 40px rgba(212,185,106,.12),
+    0 0 80px rgba(212,185,106,.06);
+  filter:drop-shadow(0 4px 12px rgba(0,0,0,.4));
+  user-select:none;-webkit-user-select:none;
+  transition:transform .15s var(--ease);
+  will-change:transform;
+}
+
+.clock-time{
+  font-family:'Cinzel',Georgia,serif;
+  font-weight:600;
+  font-size:clamp(3.5rem,8vw,8rem);
+  letter-spacing:.06em;
+  line-height:1;
+}
+
+.clock-ampm{
+  font-family:'Cinzel',Georgia,serif;
+  font-weight:500;
+  font-size:clamp(1rem,2.5vw,2rem);
+  letter-spacing:.1em;
+  color:#c4a85e;
+  opacity:.7;
+}
+
+/* Resize hint */
+.clock-hint{
+  font-family:var(--font-body);
+  font-size:.65rem;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:rgba(212,185,106,.35);
+  transition:opacity 1.5s ease;
+  pointer-events:none;
+}
+.clock-hint.fade-out{opacity:0}
+
+/* Landscape mobile: slightly smaller default */
+@media(max-height:500px) and (orientation:landscape){
+  .clock-time{font-size:clamp(2.5rem,10vw,5rem)}
+  .clock-ampm{font-size:clamp(.8rem,2vw,1.4rem)}
+}
+
 /* ═══ Audio Diagnostic Overlay ═══ */
 .audio-diag{
   position:absolute;top:60px;left:10px;right:10px;z-index:99;
