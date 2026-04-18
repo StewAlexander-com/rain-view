@@ -2,9 +2,11 @@
 
 **Find stillness in the rain.**
 
-A contemplative ambient rain simulator — 4 cozy cinematic scenes with real rain audio, gentle piano, and looping video. Built for mobile, optimized for iOS PWA. No frameworks, no dependencies, no ads.
+A contemplative ambient rain simulator — 4 cozy cinematic scenes with real rain audio, gentle piano, a resizable sleep clock, and looping video. Built for mobile, optimized for iOS PWA. No frameworks, no dependencies, no ads.
 
 [**Live Demo →**](https://stewalexander-com.github.io/rain-view/)
+
+![Rain View — Splash Screen](screenshots/splash.jpg)
 
 ---
 
@@ -17,23 +19,31 @@ A contemplative ambient rain simulator — 4 cozy cinematic scenes with real rai
 | **Autumn Forest** | Log cabin porch, New England fall foliage | Rain in the trees, lantern glow, solitude |
 | **Zen Garden** | Japanese engawa, cherry blossoms, koi pond | Gentle rain, mist, stillness |
 
-## Features
+![Tokyo Evening — Scene Controls](screenshots/scene-tokyo.jpg)
 
-- **AI-generated looping video** — each scene is an 8-second cinematic loop with rain baked into the animation (rain on glass, falling through trees, rippling on water)
-- **5 rain audio variants** — Gentle, Heavy, Window, Forest, Thunder (real recordings from Pixabay, professionally cleaned and seamless-looped)
-- **5 piano variants** — Contemplative, Jazz, Melancholic, Ethereal, Pastoral (real recordings, normalized to sit under rain)
-- **Mobile-first** — 720p mobile video variants (~400KB vs ~7MB desktop), compact touch-friendly controls
-- **iOS PWA optimized** — auto-recovery from MEDIA_ERR_DECODE on cold start, Web Audio API bypassed on iOS, plain src URLs instead of blob URLs
-- **Installable** — PWA manifest, home screen icon, standalone display mode
-- **Social sharing** — Open Graph + Twitter Card meta tags with preview image
-- **Auto-hiding controls** — glassmorphism UI fades after 4 seconds, reappears on touch
-- **Zero dependencies** — vanilla HTML/CSS/JS, no build tools, no npm
+---
 
-## Audio Selection
+## Sleep Clock
 
-Each scene has a default rain + piano pairing, but you can mix and match:
+Tap the clock icon in the upper right to activate an elegant overlay clock — perfect for bedside use while rain plays in the background.
 
-| Rain Variant | Character |
+![Sleep Clock — New York Night](screenshots/clock-nyc.jpg)
+
+- **Cinzel typeface** — Roman-proportioned serif with a brushed brass metallic finish
+- **Embossed gold effect** — gradient text fill with bevel shadows creating a raised, stamped-metal appearance
+- **Pinch to resize** — two-finger pinch (mobile) or scroll wheel (desktop) to scale the clock from compact to screen-filling (0.4x–2.5x)
+- **Background dims** when the clock is active for clear readability against any scene
+- **Hint text** — "PINCH TO RESIZE" appears briefly on activation, then fades
+
+![Sleep Clock — Mobile Portrait](screenshots/clock-mobile.jpg)
+
+---
+
+## Audio
+
+### Rain Variants
+
+| Variant | Character |
 |---|---|
 | Gentle | Light, soft patter |
 | Heavy | Full, immersive downpour |
@@ -41,7 +51,9 @@ Each scene has a default rain + piano pairing, but you can mix and match:
 | Forest | Rain on leaves and canopy |
 | Thunder | Rain with distant rumble |
 
-| Piano Variant | Character |
+### Piano Variants
+
+| Variant | Character |
 |---|---|
 | Contemplative | Sparse, minor key, cinematic |
 | Jazz | Warm, major 7th chords, nostalgic |
@@ -49,7 +61,23 @@ Each scene has a default rain + piano pairing, but you can mix and match:
 | Ethereal | Ambient, spacious, slow |
 | Pastoral | Light, meditative, Satie-like |
 
-Piano starts muted — slide the volume up to layer it in.
+Piano starts muted — slide the volume up to layer it in. Each scene has a default rain + piano pairing, but you can mix and match freely.
+
+---
+
+## Features
+
+- **AI-generated looping video** — each scene is an 8-second cinematic loop with rain baked into the animation
+- **5 rain + 5 piano variants** — real recordings, professionally cleaned and seamless-looped
+- **Sleep clock** — elegant resizable brass clock overlay for bedside use
+- **Mobile-first** — 720p mobile video variants (~400KB vs ~7MB desktop), compact touch-friendly controls
+- **iOS PWA optimized** — auto-recovery from MEDIA_ERR_DECODE on cold start, Web Audio API bypassed on iOS
+- **Installable** — PWA manifest, home screen icon, standalone display mode
+- **Social sharing** — Open Graph + Twitter Card meta tags with preview image
+- **Auto-hiding controls** — glassmorphism UI fades after 4 seconds, reappears on touch
+- **Zero dependencies** — vanilla HTML/CSS/JS, no build tools, no npm
+
+---
 
 ## Running Locally
 
@@ -59,21 +87,23 @@ npx serve .
 python3 -m http.server 8000
 ```
 
+---
+
 ## Tech Notes
 
 ### iOS Audio Architecture
 
 iOS Safari and PWA mode have strict audio restrictions. Rain View handles them:
 
-1. **No Web Audio API on iOS** — `AudioContext` and `MediaElementSource` are bypassed entirely. Volume is controlled via `HTMLAudioElement.volume` (iOS overrides this with physical volume buttons).
+1. **No Web Audio API on iOS** — `AudioContext` and `MediaElementSource` are bypassed entirely. Volume is controlled via `HTMLAudioElement.volume` (iOS overrides with physical volume buttons).
 2. **No blob URLs on iOS** — `fetch()→blob→createObjectURL` causes `MEDIA_ERR_DECODE` in PWA mode. Plain src URLs are used instead.
-3. **MEDIA_ERR_DECODE auto-recovery** — on PWA cold start, iOS sometimes fails to decode audio before the media session is initialized. When detected, the tainted `<audio>` element is destroyed and replaced with a fresh one that loads and plays successfully.
+3. **MEDIA_ERR_DECODE auto-recovery** — on PWA cold start, iOS sometimes fails to decode audio before the media session initializes. When detected, the tainted `<audio>` element is destroyed and replaced with a fresh one.
 4. **Silent MP3 activation** — a tiny data URI MP3 is played on first touch to activate the iOS audio session.
-5. **Retry cascade** — after entering a scene, playback is retried at 50/150/350/700/1200/2000/3500ms to catch various iOS timing windows.
+5. **Retry cascade** — after entering a scene, playback is retried at 50/150/350/700/1200/2000/3500ms.
 
 ### Diagnostic Panel
 
-Triple-tap the scene title to show a real-time audio diagnostic overlay. Shows AudioContext state, element playback state, MES connection status, errors, and version number. Useful for debugging audio issues on specific devices.
+Triple-tap the scene title to show a real-time audio diagnostic overlay. Shows AudioContext state, element playback state, MES connection status, errors, and version number.
 
 ### Performance
 
@@ -82,17 +112,15 @@ Triple-tap the scene title to show a real-time audio diagnostic overlay. Shows A
 - Audio: 5 rain + 5 piano MP3s, professionally EQ'd and seamless-looped
 - Total mobile payload: ~3MB for first scene load
 
-## Audio Credits
+---
 
-Rain recordings from [Pixabay](https://pixabay.com/sound-effects/) (Pixabay Content License).
-Piano recordings from [Pixabay Music](https://pixabay.com/music/) (Pixabay Content License).
-All audio professionally cleaned: high-pass filtered (60Hz), low-pass filtered (14kHz), normalized to -18dB RMS (rain) / -22dB RMS (piano), seamless crossfade loop spliced.
+## Credits
 
-See [AUDIO-CREDITS.txt](AUDIO-CREDITS.txt) for individual track attributions.
+**Rain audio** — [Pixabay Sound Effects](https://pixabay.com/sound-effects/) (Pixabay Content License)
+**Piano audio** — [Pixabay Music](https://pixabay.com/music/) (Pixabay Content License)
+**Scene video/images** — AI-generated
 
-## Image / Video Credits
-
-Scene backgrounds and videos generated using AI image and video generation tools.
+All audio professionally cleaned: high-pass filtered (60Hz), low-pass filtered (14kHz), normalized, seamless crossfade loop spliced. See [AUDIO-CREDITS.txt](AUDIO-CREDITS.txt) for individual track attributions.
 
 ## License
 
