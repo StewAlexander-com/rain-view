@@ -376,9 +376,13 @@ input[type="range"]::-moz-range-thumb{
   .ctrl-title{transition:opacity 1s ease}
 }
 
-/* ═══ Clock Button ═══ */
+/* ═══ Clock Button (fixed position, always accessible) ═══ */
 .btn-clock{
-  flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
+  position:absolute;
+  top:calc(1.25rem + env(safe-area-inset-top,0px));
+  right:calc(1.25rem + env(safe-area-inset-right,0px));
+  z-index:12; /* above controls and clock overlay */
+  display:inline-flex;align-items:center;justify-content:center;
   width:36px;height:36px;padding:0;
   border:1px solid var(--c-border);border-radius:10px;
   background:var(--c-surface);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));
@@ -393,15 +397,14 @@ input[type="range"]::-moz-range-thumb{
   position:absolute;inset:0;z-index:5;
   display:grid;place-items:center;
   transition:opacity .8s var(--ease-out),visibility .8s;
-  pointer-events:none;
+  touch-action:none; /* capture pinch on the entire overlay */
 }
 .clock-overlay.hidden{opacity:0;visibility:hidden}
 
-/* Dim layer behind clock */
+/* Dim layer behind clock — tappable to dismiss */
 .clock-dim{
   position:absolute;inset:0;
   background:rgba(0,0,0,.35);
-  pointer-events:none;
 }
 
 .clock-container{

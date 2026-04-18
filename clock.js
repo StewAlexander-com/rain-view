@@ -1,6 +1,7 @@
 /* ═══ Rain View — clock.js ═══
    Elegant overlay clock with pinch-to-resize.
-   Scales via font-size (not CSS transform) so flex centering stays intact.
+   Scales via font-size so flex centering stays intact.
+   Pinch target is the entire overlay, not just the clock face.
 */
 (function () {
   'use strict';
@@ -10,9 +11,9 @@
   var ampmEl    = document.getElementById('clock-ampm');
   var hintEl    = document.getElementById('clock-hint');
   var toggleBtn = document.getElementById('clock-toggle');
-  var clockFace = document.getElementById('clock-face');
+  var ctrl      = document.getElementById('ctrl');
 
-  if (!overlay || !timeEl || !toggleBtn || !clockFace) return;
+  if (!overlay || !timeEl || !toggleBtn) return;
 
   var active = false;
   var tickInterval = null;
@@ -27,8 +28,6 @@
   var pinchStartScale = 1;
   var hintTimeout = null;
 
-  var ctrl = document.getElementById('ctrl');
-
   // ── Toggle clock ──
   function toggle() {
     active = !active;
@@ -40,12 +39,12 @@
       applyScale();
       tickInterval = setInterval(tick, 1000);
       showHint();
-      // Hide controls so they don't interfere with pinch
+      // Hide audio controls so they don't interfere with pinch
       if (ctrl) ctrl.classList.add('hidden');
     } else {
       clearInterval(tickInterval);
       tickInterval = null;
-      // Restore controls
+      // Restore audio controls
       if (ctrl) ctrl.classList.remove('hidden');
     }
   }
@@ -70,16 +69,16 @@
     clearTimeout(hintTimeout);
     hintTimeout = setTimeout(function () {
       hintEl.classList.add('fade-out');
-    }, 3000);
+    }, 4000);
   }
 
-  // ── Apply scale via font-size (keeps flexbox centering intact) ──
+  // ── Apply scale via font-size ──
   function applyScale() {
     timeEl.style.fontSize = (BASE_SIZE * scale) + 'vw';
     ampmEl.style.fontSize = (BASE_AMPM * scale) + 'vw';
   }
 
-  // ── Pinch-to-zoom (touch) ──
+  // ── Pinch-to-zoom on the ENTIRE overlay ──
   function getTouchDist(e) {
     if (e.touches.length < 2) return 0;
     var dx = e.touches[0].clientX - e.touches[1].clientX;
@@ -87,40 +86,45 @@
     return Math.sqrt(dx * dx + dy * dy);
   }
 
-  if (clockFace) {
-    clockFace.addEventListener('touchstart', function (e) {
-      if (e.touches.length === 2) {
-        e.preventDefault();
-        pinchStartDist = getTouchDist(e);
-        pinchStartScale = scale;
-      }
-    }, { passive: false });
-
-    clockFace.addEventListener('touchmove', function (e) {
-      if (e.touches.length === 2) {
-        e.preventDefault();
-        var dist = getTouchDist(e);
-        if (pinchStartDist > 0) {
-          var newScale = pinchStartScale * (dist / pinchStartDist);
-          scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, newScale));
-          applyScale();
-        }
-      }
-    }, { passive: false });
-
-    clockFace.addEventListener('touchend', function () {
-      pinchStartDist = 0;
-    });
-
-    // Mouse wheel zoom for desktop
-    clockFace.addEventListener('wheel', function (e) {
+  overlay.addEventListener('touchstart', function (e) {
+    if (e.touches.length === 2) {
       e.preventDefault();
-      var delta = e.deltaY > 0 ? -0.08 : 0.08;
-      scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale + delta));
-      applyScale();
-      showHint();
-    }, { passive: false });
-  }
+      pinchStartDist = getTouchDist(e);
+      pinchStartScale = scale;
+    }
+  }, { passive: false });
+
+  overlay.addEventListener('touchmove', function (e) {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      var dist = getTouchDist(e);
+      if (pinchStartDist > 0) {
+        var newScale = pinchStartScale * (dist / pinchStartDist);
+        scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, newScale));
+        applyScale();
+      }
+    }
+  }, { passive: false });
+
+  overlay.addEventListener('touchend', function () {
+    pinchStartDist = 0;
+  });
+
+  // Mouse wheel zoom for desktop
+  overlay.addEventListener('wheel', function (e) {
+    e.preventDefault();
+    var delta = e.deltaY > 0 ? -0.08 : 0.08;
+    scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale + delta));
+    applyScale();
+  }, { passive: false });
+
+  // Tap the dimmed background to dismiss clock
+  overlay.addEventListener('click', function (e) {
+    // Only dismiss if tapping the dim area, not the clock face itself
+    if (e.target === overlay || e.target.classList.contains('clock-dim')) {
+      toggle();
+    }
+  });
 
   // ── Button handler ──
   toggleBtn.addEventListener('click', function (e) {
@@ -138,6 +142,7 @@
         toggleBtn.classList.remove('is-active');
         clearInterval(tickInterval);
         tickInterval = null;
+        if (ctrl) ctrl.classList.remove('hidden');
       }
     });
   }
