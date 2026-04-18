@@ -536,6 +536,15 @@
         crossfadeTimer = setTimeout(function () {
           if (!current) return;
 
+          // Skip crossfade when clock is active — the opacity dip
+          // shows through the dim overlay as visible blinking
+          var clockOverlay = document.getElementById('clock-overlay');
+          if (clockOverlay && !clockOverlay.classList.contains('hidden')) {
+            // Just let vid A loop natively and reschedule
+            scheduleCrossfade();
+            return;
+          }
+
           // Start vid B playing from half-duration offset
           vid2.currentTime = halfDur;
           vid2.play().catch(function () {});
@@ -545,15 +554,12 @@
           // After the CSS fade completes, swap roles
           setTimeout(function () {
             if (!current) return;
-            // Reset vid A to the beginning and get it ready for next crossfade
             vid.classList.remove('fading');
             vid.currentTime = 0;
             vid.play().catch(function () {});
 
-            // Fade vid B back out
             vid2.classList.remove('visible');
 
-            // Schedule next crossfade
             scheduleCrossfade();
           }, fadeTime * 1000 + 100);
         }, delay);
