@@ -29,11 +29,14 @@ Tap the clock icon in the upper right to activate an elegant overlay clock — p
 
 ![Sleep Clock — New York Night](screenshots/clock-nyc.jpg)
 
-- **Cinzel typeface** — Roman-proportioned serif with a brushed brass metallic finish
-- **Embossed gold effect** — gradient text fill with bevel shadows creating a raised, stamped-metal appearance
-- **Pinch to resize** — two-finger pinch (mobile) or scroll wheel (desktop) to scale the clock from compact to screen-filling (0.4x–2.5x)
+- **Cinzel typeface** — Roman-proportioned serif with a brushed brass metallic finish (regular weight, not bold)
+- **Embossed gold effect** — gradient text fill sweeping from warm ruddy brass to lighter gold, with bevel shadows creating a raised stamped-metal appearance
+- **Pinch to resize** — two-finger pinch anywhere on screen (mobile) or scroll wheel (desktop) to scale from compact to screen-filling (0.4x–3.0x)
 - **Background dims** when the clock is active for clear readability against any scene
-- **Hint text** — "PINCH TO RESIZE" appears briefly on activation, then fades
+- **Tap to dismiss** — tap the dimmed background or the clock button to close
+- **Always accessible** — clock button stays visible in the top-right even when audio controls auto-hide
+- **Controls suppressed** — audio controls hide while the clock is active so pinch gestures aren't intercepted
+- **Visual hint** — subtle expand-arrows icon pulses briefly on activation to signal resizability
 
 ![Sleep Clock — Mobile Portrait](screenshots/clock-mobile.jpg)
 
