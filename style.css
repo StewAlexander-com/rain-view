@@ -413,15 +413,19 @@ input[type="range"]::-moz-range-thumb{
 
 .clock-face{
   display:flex;align-items:baseline;gap:.3em;
-  /* Bezeled gold effect */
-  color:#d4b96a;
-  text-shadow:
-    0 1px 0 #b8973e,
-    0 2px 0 #a6863a,
-    0 3px 4px rgba(0,0,0,.45),
-    0 0 40px rgba(212,185,106,.12),
-    0 0 80px rgba(212,185,106,.06);
-  filter:drop-shadow(0 4px 12px rgba(0,0,0,.4));
+  /* Embossed brushed brass — ruddy warm metallic */
+  color:#b8965c;
+  background:linear-gradient(170deg,#c9a86c 0%,#a07842 40%,#b8965c 55%,#d4b87a 70%,#a07842 100%);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  /* Raised embossed bevel: light top edge, dark bottom edge */
+  filter:
+    drop-shadow(0 -1px 0 rgba(210,185,130,.4))
+    drop-shadow(0 1px 0 rgba(80,55,20,.6))
+    drop-shadow(0 2px 1px rgba(40,25,8,.5))
+    drop-shadow(0 4px 8px rgba(0,0,0,.4))
+    drop-shadow(0 0 30px rgba(180,150,92,.08));
   user-select:none;-webkit-user-select:none;
   transition:transform .15s var(--ease);
   will-change:transform;
@@ -429,19 +433,18 @@ input[type="range"]::-moz-range-thumb{
 
 .clock-time{
   font-family:'Cinzel',Georgia,serif;
-  font-weight:600;
+  font-weight:400;
   font-size:clamp(3.5rem,8vw,8rem);
-  letter-spacing:.06em;
+  letter-spacing:.08em;
   line-height:1;
 }
 
 .clock-ampm{
   font-family:'Cinzel',Georgia,serif;
-  font-weight:500;
+  font-weight:400;
   font-size:clamp(1rem,2.5vw,2rem);
-  letter-spacing:.1em;
-  color:#c4a85e;
-  opacity:.7;
+  letter-spacing:.12em;
+  opacity:.8;
 }
 
 /* Resize hint */
