@@ -37,21 +37,36 @@ body{min-height:100dvh;width:100vw;overflow:hidden;font-family:var(--font-body);
 /* Title */
 .splash-title{
   font-family:var(--font-display);
-  font-size:clamp(3rem,2rem+5vw,5.2rem);
+  font-size:clamp(3.5rem,2.5rem+6vw,6rem);
   font-weight:300;
   letter-spacing:.1em;
   line-height:1;
-  text-shadow:0 2px 30px rgba(0,0,0,.4);
+  /* Desaturated surf blue with vertical rain-streak gradient */
+  background:linear-gradient(
+    180deg,
+    rgba(140,175,195,.85) 0%,
+    rgba(120,155,175,.6) 20%,
+    rgba(160,190,210,.8) 35%,
+    rgba(110,145,165,.5) 50%,
+    rgba(150,185,205,.75) 65%,
+    rgba(130,165,185,.55) 80%,
+    rgba(145,180,200,.7) 100%
+  );
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  filter:drop-shadow(0 2px 20px rgba(120,160,185,.15)) drop-shadow(0 1px 2px rgba(0,0,0,.4));
   opacity:0;animation:fadeUp 1s var(--ease) .4s forwards;
 }
 
 /* Subtitle */
 .splash-sub{
   font-family:'EB Garamond','Palatino Linotype',Palatino,Georgia,serif;
-  font-size:clamp(1.6rem,7.5vw,3.8rem);
+  font-size:clamp(1.6rem,6.8vw,3.5rem);
   font-weight:400;
   font-style:italic;
   letter-spacing:.06em;
+  padding:0 5px;
   color:rgba(220,215,200,.4);
   margin-top:1.2rem;margin-bottom:.5rem;
   opacity:0;animation:fadeUp .8s var(--ease) .7s forwards;
