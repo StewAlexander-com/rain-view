@@ -48,7 +48,7 @@ body{min-height:100dvh;width:100vw;overflow:hidden;font-family:var(--font-body);
 /* Subtitle */
 .splash-sub{
   font-family:'EB Garamond','Palatino Linotype',Palatino,Georgia,serif;
-  font-size:clamp(1.8rem,1.2rem+2.5vw,2.8rem);
+  font-size:clamp(2.4rem,1.5rem+4.5vw,3.8rem);
   font-weight:400;
   font-style:italic;
   letter-spacing:.12em;
