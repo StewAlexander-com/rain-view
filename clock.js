@@ -1,6 +1,6 @@
 /* ═══ Rain View — clock.js ═══
    Elegant overlay clock with pinch-to-resize.
-   Bezeled gold Cinzel typeface, centered, user-zoomable.
+   Scales via font-size (not CSS transform) so flex centering stays intact.
 */
 (function () {
   'use strict';
@@ -10,17 +10,19 @@
   var ampmEl    = document.getElementById('clock-ampm');
   var hintEl    = document.getElementById('clock-hint');
   var toggleBtn = document.getElementById('clock-toggle');
-  var container = document.querySelector('.clock-container');
+  var clockFace = document.getElementById('clock-face');
 
-  if (!overlay || !timeEl || !toggleBtn) return;
+  if (!overlay || !timeEl || !toggleBtn || !clockFace) return;
 
   var active = false;
   var tickInterval = null;
 
-  // ── Scale state ──
+  // ── Scale state (controls font-size multiplier) ──
   var scale = 1;
   var MIN_SCALE = 0.4;
-  var MAX_SCALE = 2.5;
+  var MAX_SCALE = 3.0;
+  var BASE_SIZE = 8;     // base vw for the time font
+  var BASE_AMPM = 2.5;   // base vw for AM/PM
   var pinchStartDist = 0;
   var pinchStartScale = 1;
   var hintTimeout = null;
@@ -32,7 +34,8 @@
     toggleBtn.classList.toggle('is-active', active);
 
     if (active) {
-      tick(); // immediate update
+      tick();
+      applyScale();
       tickInterval = setInterval(tick, 1000);
       showHint();
     } else {
@@ -64,10 +67,10 @@
     }, 3000);
   }
 
-  // ── Apply scale ──
+  // ── Apply scale via font-size (keeps flexbox centering intact) ──
   function applyScale() {
-    if (!container) return;
-    container.style.transform = 'scale(' + scale.toFixed(3) + ')';
+    timeEl.style.fontSize = (BASE_SIZE * scale) + 'vw';
+    ampmEl.style.fontSize = (BASE_AMPM * scale) + 'vw';
   }
 
   // ── Pinch-to-zoom (touch) ──
@@ -78,8 +81,8 @@
     return Math.sqrt(dx * dx + dy * dy);
   }
 
-  if (container) {
-    container.addEventListener('touchstart', function (e) {
+  if (clockFace) {
+    clockFace.addEventListener('touchstart', function (e) {
       if (e.touches.length === 2) {
         e.preventDefault();
         pinchStartDist = getTouchDist(e);
@@ -87,7 +90,7 @@
       }
     }, { passive: false });
 
-    container.addEventListener('touchmove', function (e) {
+    clockFace.addEventListener('touchmove', function (e) {
       if (e.touches.length === 2) {
         e.preventDefault();
         var dist = getTouchDist(e);
@@ -99,12 +102,12 @@
       }
     }, { passive: false });
 
-    container.addEventListener('touchend', function () {
+    clockFace.addEventListener('touchend', function () {
       pinchStartDist = 0;
     });
 
     // Mouse wheel zoom for desktop
-    container.addEventListener('wheel', function (e) {
+    clockFace.addEventListener('wheel', function (e) {
       e.preventDefault();
       var delta = e.deltaY > 0 ? -0.08 : 0.08;
       scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale + delta));
