@@ -51,7 +51,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500&family=Cormorant+Garamond:wght@300;400;500&family=Inter:wght@300;400;500&family=EB+Garamond:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=45">
+  <link rel="stylesheet" href="style.css?v=46">
 </head>
 <body>
 
@@ -110,7 +110,14 @@
           <span class="clock-time" id="clock-time">12:00</span>
           <span class="clock-ampm" id="clock-ampm">AM</span>
         </div>
-        <div class="clock-hint" id="clock-hint">pinch to resize</div>
+        <div class="clock-hint" id="clock-hint">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+            <path d="M8 14L4 10M4 10L8 6M4 10H12" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".6"/>
+            <path d="M20 14L24 10M24 10L20 6M24 10H16" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".6"/>
+            <path d="M14 20L10 24M10 24L6 20" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".4"/>
+            <path d="M14 20L18 24M18 24L22 20" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".4"/>
+          </svg>
+        </div>
       </div>
     </div>
 
@@ -178,9 +185,9 @@
   </div>
 
   <!-- Bump ?v= when changing audio-system.js / mobile.js / app.js so disk cache cannot pin old JS (which pins old MP3 URLs). -->
-  <script src="audio-system.js?v=45"></script>
-  <script src="mobile.js?v=45"></script>
-  <script src="app.js?v=45"></script>
-  <script src="clock.js?v=45"></script>
+  <script src="audio-system.js?v=46"></script>
+  <script src="mobile.js?v=46"></script>
+  <script src="app.js?v=46"></script>
+  <script src="clock.js?v=46"></script>
 </body>
 </html>

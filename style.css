@@ -445,17 +445,18 @@ input[type="range"]::-moz-range-thumb{
   opacity:.8;
 }
 
-/* Resize hint */
+/* Resize hint — expand arrows icon */
 .clock-hint{
-  font-family:var(--font-body);
-  font-size:.65rem;
-  letter-spacing:.1em;
-  text-transform:uppercase;
-  color:rgba(212,185,106,.35);
-  transition:opacity 1.5s ease;
+  color:rgba(200,170,100,.3);
+  margin-top:.5rem;
+  animation:hintPulse 2s ease-in-out 1s 2;
   pointer-events:none;
 }
-.clock-hint.fade-out{opacity:0}
+.clock-hint.fade-out{opacity:0;transition:opacity 1.5s ease}
+@keyframes hintPulse{
+  0%,100%{opacity:.3;transform:scale(1)}
+  50%{opacity:.6;transform:scale(1.2)}
+}
 
 /* Landscape mobile: slightly smaller default */
 @media(max-height:500px) and (orientation:landscape){

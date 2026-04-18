@@ -27,6 +27,8 @@
   var pinchStartScale = 1;
   var hintTimeout = null;
 
+  var ctrl = document.getElementById('ctrl');
+
   // ── Toggle clock ──
   function toggle() {
     active = !active;
@@ -38,9 +40,13 @@
       applyScale();
       tickInterval = setInterval(tick, 1000);
       showHint();
+      // Hide controls so they don't interfere with pinch
+      if (ctrl) ctrl.classList.add('hidden');
     } else {
       clearInterval(tickInterval);
       tickInterval = null;
+      // Restore controls
+      if (ctrl) ctrl.classList.remove('hidden');
     }
   }
 

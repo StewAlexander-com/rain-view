@@ -463,17 +463,28 @@
   }
 
   // Auto-hide controls
+  // When clock overlay is active, suppress control auto-show so
+  // touch events go to pinch-to-zoom instead of popping up controls.
+  function isClockActive() {
+    var overlay = document.getElementById('clock-overlay');
+    return overlay && !overlay.classList.contains('hidden');
+  }
+
   function setupAutoHide() {
     function reset() {
       if (!current) return;
+      if (isClockActive()) {
+        // Clock is up — keep controls hidden so pinch works uninterrupted
+        hideCtrl();
+        clearTimeout(idleTimer);
+        return;
+      }
       showCtrl();
       clearTimeout(idleTimer);
       idleTimer = setTimeout(hideCtrl, 4000);
     }
     document.addEventListener('mousemove', reset);
     document.addEventListener('touchstart', reset, { passive: true });
-    // Desktop: clicks on the video do not fire mousemove — without this, the panel
-    // (including play/pause) stays at opacity 0 after auto-hide.
     document.addEventListener('click', reset);
     document.addEventListener('pointerdown', reset, { passive: true });
 
