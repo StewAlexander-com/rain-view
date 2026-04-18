@@ -47,16 +47,17 @@ body{min-height:100dvh;width:100vw;overflow:hidden;font-family:var(--font-body);
 
 /* Subtitle */
 .splash-sub{
-  font-size:clamp(.72rem,.6rem+.4vw,.88rem);
-  font-weight:300;
-  letter-spacing:.2em;
-  text-transform:uppercase;
-  color:var(--c-dim);
-  margin-top:.6rem;
+  font-family:'EB Garamond','Palatino Linotype',Palatino,Georgia,serif;
+  font-size:clamp(.82rem,.68rem+.45vw,.98rem);
+  font-weight:400;
+  font-style:italic;
+  letter-spacing:.12em;
+  color:rgba(220,215,200,.4);
+  margin-top:.7rem;
   opacity:0;animation:fadeUp .8s var(--ease) .7s forwards;
 }
 .splash-accent{
-  color:rgba(212,185,106,.7);
+  color:rgba(220,215,200,.58);
   font-weight:400;
 }
 
