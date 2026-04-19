@@ -407,7 +407,7 @@ input[type="range"]::-moz-range-thumb{
     border-top:1px solid rgba(255,255,255,.05);
   }
   .ctrl-label{margin-bottom:.45rem;font-size:.6rem}
-  .pills{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:1px;margin-bottom:.5rem}
+  .pills{flex-wrap:wrap;margin-bottom:.5rem}
   .pills::-webkit-scrollbar{display:none}
   .pill{flex-shrink:0;padding:5px 11px;font-size:11px}
   .vol-row{gap:.4rem}
