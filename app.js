@@ -485,12 +485,16 @@
   }
 
   function setupAutoHide() {
-    function reset() {
+    function reset(e) {
       if (!current) return;
       if (isClockActive()) {
-        // Clock is up — keep controls hidden so pinch works uninterrupted
         hideCtrl();
         clearTimeout(idleTimer);
+        return;
+      }
+      // Don't show controls when tapping the clock button
+      var clockBtn = document.getElementById('clock-toggle');
+      if (e && clockBtn && (e.target === clockBtn || clockBtn.contains(e.target))) {
         return;
       }
       showCtrl();

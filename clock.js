@@ -127,6 +127,18 @@
   });
 
   // ── Button handler ──
+  // Stop both touchstart and click from propagating — otherwise the
+  // auto-show-controls handler fires on touchstart, racing with the
+  // clock toggle and causing the controls to flash over the clock.
+  toggleBtn.addEventListener('touchstart', function (e) {
+    e.stopPropagation();
+  }, { passive: true });
+  toggleBtn.addEventListener('touchend', function (e) {
+    e.stopPropagation();
+  }, { passive: true });
+  toggleBtn.addEventListener('pointerdown', function (e) {
+    e.stopPropagation();
+  });
   toggleBtn.addEventListener('click', function (e) {
     e.stopPropagation();
     toggle();
