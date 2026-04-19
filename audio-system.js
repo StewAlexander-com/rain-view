@@ -1160,6 +1160,74 @@
     this._started = true;
     this.ensureWebAudio();
     this.resumeAudioContextIfNeeded();
+    // Kick all audio elements to start buffering.
+    // iOS ignores preload="auto" — it only loads when play() is called.
+    // We briefly play() + pause() each element at volume 0 to force the fetch.
+    this._preloadAll();
+  };
+
+  AudioEngine.prototype._preloadAll = function () {
+    var layers = [this.rainLayer, this.pianoLayer];
+    for (var i = 0; i < layers.length; i++) {
+      var layer = layers[i];
+      if (!layer || !layer.audios) continue;
+      var names = Object.keys(layer.audios);
+      for (var j = 0; j < names.length; j++) {
+        var el = layer.audios[names[j]];
+        if (!el) continue;
+        // Force iOS to start buffering by touching the element
+        try {
+          if (el.readyState < 3) { // HAVE_FUTURE_DATA
+            el.volume = 0;
+            el.muted = true;
+            var p = el.play();
+            if (p && typeof p.then === 'function') {
+              (function (audioEl) {
+                p.then(function () {
+                  audioEl.pause();
+                  audioEl.currentTime = 0;
+                  audioEl.muted = false;
+                  audioEl.volume = 1;
+                }).catch(function () {
+                  audioEl.muted = false;
+                  audioEl.volume = 1;
+                });
+              })(el);
+            } else {
+              el.pause();
+              el.currentTime = 0;
+              el.muted = false;
+              el.volume = 1;
+            }
+          }
+          // Also kick the twin
+          var twin = el._rvTwin;
+          if (twin && twin.readyState < 3) {
+            twin.volume = 0;
+            twin.muted = true;
+            var p2 = twin.play();
+            if (p2 && typeof p2.then === 'function') {
+              (function (audioEl) {
+                p2.then(function () {
+                  audioEl.pause();
+                  audioEl.currentTime = 0;
+                  audioEl.muted = false;
+                  audioEl.volume = 1;
+                }).catch(function () {
+                  audioEl.muted = false;
+                  audioEl.volume = 1;
+                });
+              })(twin);
+            } else {
+              twin.pause();
+              twin.currentTime = 0;
+              twin.muted = false;
+              twin.volume = 1;
+            }
+          }
+        } catch (e) {}
+      }
+    }
   };
 
   AudioEngine.prototype.setRainVariant = function (name) {
