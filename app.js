@@ -349,6 +349,11 @@
     });
 
     scheduleSilentAudioNote();
+
+    // Keep screen awake while scene is active
+    if (typeof RainViewWakeLock !== 'undefined') {
+      RainViewWakeLock.acquire();
+    }
   }
 
   function prepareScene(id) {
@@ -392,6 +397,11 @@
     stopCrossfadeLoop();
     vid.pause();
     vid.src = '';
+
+    // Release screen wake lock
+    if (typeof RainViewWakeLock !== 'undefined') {
+      RainViewWakeLock.release();
+    }
     audio.stopAll();
     sceneEl.classList.add('hidden');
     setTimeout(() => splash.classList.remove('hidden'), 100);
