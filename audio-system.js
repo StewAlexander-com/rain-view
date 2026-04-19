@@ -46,7 +46,7 @@
    * Bump when any MP3 under assets/ is replaced. Browsers and CDNs cache
    * audio URLs by path; a query string forces a fresh fetch (same file name).
    */
-  var RV_AUDIO_ASSET_VER = '18';
+  var RV_AUDIO_ASSET_VER = '19';
 
   function withAssetVer(path) {
     var sep = path.indexOf('?') >= 0 ? '&' : '?';
@@ -1023,7 +1023,9 @@
         heavy: 'assets/rain-heavy.mp3',
         window: 'assets/rain-window.mp3',
         forest: 'assets/rain-forest.mp3',
-        thunder: 'assets/rain-thunder.mp3'
+        thunder: 'assets/rain-thunder.mp3',
+        leaves: 'assets/rain-leaves.mp3',
+        roof: 'assets/rain-roof.mp3'
       }),
       { fadeInMs: 0 }
     );
@@ -1034,7 +1036,9 @@
         jazz: 'assets/piano-jazz.mp3',
         melancholic: 'assets/piano-melancholic.mp3',
         ethereal: 'assets/piano-ethereal.mp3',
-        pastoral: 'assets/piano-pastoral.mp3'
+        pastoral: 'assets/piano-pastoral.mp3',
+        guitar: 'assets/piano-guitar.mp3',
+        cello: 'assets/piano-cello.mp3'
       }),
       { fadeInMs: 650 }
     );

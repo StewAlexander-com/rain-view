@@ -36,3 +36,25 @@ https://mixkit.co/license/#sfxFree
 Other rain MP3s in assets/ (gentle, window, forest, thunder) are unchanged from
 the original Rain View bundle; add credits here if you replace them.
 
+
+New Music Tracks (Pixabay Content License)
+------------------------------------------
+https://pixabay.com/service/license-summary/
+
+Guitar     piano-guitar.mp3    "Dreaming on Guitar Strings" by Surprising_Media
+                               https://pixabay.com/music/solo-guitar-dreaming-on-guitar-strings-512774/
+
+Cello      piano-cello.mp3     "Ambient Cello and Synth" by kaazoom
+                               https://pixabay.com/music/ambient-ambient-cello-and-synth-21557/
+
+
+New Rain Tracks (Pixabay Content License)
+-----------------------------------------
+https://pixabay.com/service/license-summary/
+
+Leaves     rain-leaves.mp3     "Rain on Leaves" by StarryMelodiesoftheWind
+                               https://pixabay.com/sound-effects/nature-rain-on-leaves-309504/
+
+Roof       rain-roof.mp3       "Rain Sounds on a Tin Roof 01" by gugunxyz
+                               https://pixabay.com/sound-effects/nature-rain-sounds-on-a-tin-roof-01-464648/
+
