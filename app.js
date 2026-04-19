@@ -495,7 +495,7 @@
       }
       showCtrl();
       clearTimeout(idleTimer);
-      idleTimer = setTimeout(hideCtrl, 4000);
+      idleTimer = setTimeout(hideCtrl, 5500);
     }
     document.addEventListener('mousemove', reset);
     document.addEventListener('touchstart', reset, { passive: true });
@@ -503,9 +503,9 @@
     document.addEventListener('pointerdown', reset, { passive: true });
 
     ctrl.addEventListener('mouseenter', () => clearTimeout(idleTimer));
-    ctrl.addEventListener('mouseleave', () => { if (current) idleTimer = setTimeout(hideCtrl, 4000); });
+    ctrl.addEventListener('mouseleave', () => { if (current) idleTimer = setTimeout(hideCtrl, 5500); });
     ctrl.addEventListener('touchstart', () => clearTimeout(idleTimer), { passive: true });
-    ctrl.addEventListener('touchend', () => { if (current) idleTimer = setTimeout(hideCtrl, 4000); }, { passive: true });
+    ctrl.addEventListener('touchend', () => { if (current) idleTimer = setTimeout(hideCtrl, 5500); }, { passive: true });
   }
 
   function showCtrl() { ctrl.classList.remove('hidden'); }
