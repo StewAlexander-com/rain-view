@@ -124,6 +124,7 @@ Triple-tap the scene title to show a real-time audio diagnostic overlay. Shows A
 - Video uses a 650ms two-element dissolve; rain uses a 600ms equal-power Web Audio handoff. iOS uses native media loops to avoid overlapping uncontrollable-volume elements.
 - See [the ten-pass polish audit](POLISH-AUDIT.md) for measured loudness, trade-offs, QA and real-device limitations.
 - See [the opening-screen audit](SPLASH-POLISH-AUDIT.md) for its ten reviewed refinements, responsive checks and image-payload measurements.
+- See [the card typography audit](CARD-TYPOGRAPHY-AUDIT.md) for the five-pass cinematic caption refinement, color choices and contrast checks.
 
 ---
 
