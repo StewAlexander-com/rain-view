@@ -52,14 +52,17 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500&family=Cormorant+Garamond:wght@300;400;500&family=Inter:wght@300;400;500&family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=60">
+  <link rel="stylesheet" href="style.css?v=61">
 </head>
 <body>
 
   <!-- ═══ SPLASH ═══ -->
-  <div id="splash" class="splash">
+  <div id="splash" class="splash" role="main" aria-labelledby="splash-title">
     <div class="splash-bg">
-      <img src="assets/splash-rain-window.jpg" alt="">
+      <picture>
+        <source type="image/webp" srcset="assets/splash-rain-window-small.webp 800w, assets/splash-rain-window.webp 1600w" sizes="100vw">
+        <img src="assets/splash-rain-window.jpg" alt="" width="2752" height="1536" decoding="async">
+      </picture>
       <div class="splash-overlay"></div>
     </div>
     <div class="splash-content">
@@ -67,24 +70,24 @@
         <path d="M24 4C24 4 10 20 10 28a14 14 0 0028 0C38 20 24 4 24 4z" stroke="currentColor" stroke-width="1.5" opacity=".6"/>
         <path d="M24 10C24 10 16 22 16 27a8 8 0 0016 0C32 22 24 10 24 10z" stroke="currentColor" stroke-width="1" opacity=".3"/>
       </svg>
-      <h1 class="splash-title">Rain View</h1>
+      <h1 class="splash-title" id="splash-title">Rain View</h1>
       <p class="splash-sub"><span class="splash-accent">Time</span> for stillness in the rain</p>
-      <div class="grid">
-        <button class="card" data-scene="tokyo">
-          <img src="assets/thumb-tokyo.jpg" alt="Tokyo Evening">
-          <div class="card-info"><span class="card-name">Tokyo Evening</span><span class="card-desc">Neon-lit streets through rain-kissed glass</span></div>
+      <div class="grid" role="group" aria-label="Choose a rain scene">
+        <button type="button" class="card" data-scene="tokyo" aria-labelledby="name-tokyo" aria-describedby="desc-tokyo">
+          <picture><source type="image/webp" srcset="assets/thumb-tokyo.webp"><img src="assets/thumb-tokyo.jpg" alt="" width="800" height="447" decoding="async" fetchpriority="high"></picture>
+          <div class="card-info"><span class="card-name" id="name-tokyo">Tokyo Evening</span><span class="card-desc" id="desc-tokyo">Neon-lit streets through rain-kissed glass</span></div>
         </button>
-        <button class="card" data-scene="nyc">
-          <img src="assets/thumb-nyc.jpg" alt="New York Night">
-          <div class="card-info"><span class="card-name">New York Night</span><span class="card-desc">Manhattan skyline, steam, and amber light</span></div>
+        <button type="button" class="card" data-scene="nyc" aria-labelledby="name-nyc" aria-describedby="desc-nyc">
+          <picture><source type="image/webp" srcset="assets/thumb-nyc.webp"><img src="assets/thumb-nyc.jpg" alt="" width="800" height="447" decoding="async"></picture>
+          <div class="card-info"><span class="card-name" id="name-nyc">New York Night</span><span class="card-desc" id="desc-nyc">Manhattan skyline, steam, and amber light</span></div>
         </button>
-        <button class="card" data-scene="autumn">
-          <img src="assets/thumb-autumn.jpg" alt="Autumn Forest">
-          <div class="card-info"><span class="card-name">Autumn Forest</span><span class="card-desc">Immersed in fall foliage and mountain mist</span></div>
+        <button type="button" class="card" data-scene="autumn" aria-labelledby="name-autumn" aria-describedby="desc-autumn">
+          <picture><source type="image/webp" srcset="assets/thumb-autumn.webp"><img src="assets/thumb-autumn.jpg" alt="" width="800" height="447" decoding="async"></picture>
+          <div class="card-info"><span class="card-name" id="name-autumn">Autumn Forest</span><span class="card-desc" id="desc-autumn">Immersed in fall foliage and mountain mist</span></div>
         </button>
-        <button class="card" data-scene="garden">
-          <img src="assets/thumb-garden.jpg" alt="Zen Garden">
-          <div class="card-info"><span class="card-name">Zen Garden</span><span class="card-desc">Cherry blossoms and rain on still water</span></div>
+        <button type="button" class="card" data-scene="garden" aria-labelledby="name-garden" aria-describedby="desc-garden">
+          <picture><source type="image/webp" srcset="assets/thumb-garden.webp"><img src="assets/thumb-garden.jpg" alt="" width="800" height="447" decoding="async"></picture>
+          <div class="card-info"><span class="card-name" id="name-garden">Zen Garden</span><span class="card-desc" id="desc-garden">Cherry blossoms and rain on still water</span></div>
         </button>
       </div>
       <p class="splash-hint">Tap a scene to begin</p>
@@ -92,7 +95,7 @@
   </div>
 
   <!-- ═══ SCENE VIEW ═══ -->
-  <div id="scene" class="scene hidden">
+  <div id="scene" class="scene hidden" inert>
     <video id="vid" class="scene-vid" muted loop playsinline preload="auto"></video>
     <video id="vid2" class="scene-vid scene-vid-b" muted loop playsinline preload="auto"></video>
     <div class="vignette"></div>
@@ -204,8 +207,8 @@
   <script src="wakelock.js?v=60"></script>
   <script src="audio-system.js?v=60"></script>
   <script src="mobile.js?v=51"></script>
-  <script src="app.js?v=60"></script>
+  <script src="app.js?v=61"></script>
   <script src="clock.js?v=60"></script>
-  <script src="update-check.js?v=60"></script>
+  <script src="update-check.js?v=61"></script>
 </body>
 </html>

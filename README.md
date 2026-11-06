@@ -75,6 +75,8 @@ Piano starts muted. Select a music variant, press its Play button or raise its v
 
 ## Features
 
+- **Polished opening screen** — original surf-blue title, ivory italic shimmer and four scene previews, with legible captions, non-overlapping phone cards and reliable keyboard focus.
+- **Lighter splash images** — responsive WebP versions of the existing images, with JPEG fallbacks for browsers without WebP support. Failed images retain readable scene names.
 - **AI-generated looping video** — each scene is an 8-second cinematic loop with rain baked into the animation
 - **7 rain + 7 music variants** — existing recordings retained; rain conservatively remastered near −23 LUFS with a 35 Hz high-pass.
 - **Sleep clock** — elegant resizable brass clock overlay for bedside use
@@ -121,6 +123,7 @@ Triple-tap the scene title to show a real-time audio diagnostic overlay. Shows A
 - Audio: seven rain and seven music MP3s. The landing page fetches none; entering a scene loads its selected pair, other choices load on selection.
 - Video uses a 650ms two-element dissolve; rain uses a 600ms equal-power Web Audio handoff. iOS uses native media loops to avoid overlapping uncontrollable-volume elements.
 - See [the ten-pass polish audit](POLISH-AUDIT.md) for measured loudness, trade-offs, QA and real-device limitations.
+- See [the opening-screen audit](SPLASH-POLISH-AUDIT.md) for its ten reviewed refinements, responsive checks and image-payload measurements.
 
 ---
 

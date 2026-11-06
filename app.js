@@ -210,6 +210,11 @@
     // Scene cards
     document.querySelectorAll('.card').forEach(c => {
       const id = c.dataset.scene;
+      const image = c.querySelector('img');
+      function imageFallback() { c.classList.add('image-unavailable'); }
+      image.addEventListener('error', imageFallback);
+      image.addEventListener('load', () => c.classList.remove('image-unavailable'));
+      if (image.complete && !image.naturalWidth) imageFallback();
       // Warm up video + audio on earliest intent signal so the subsequent click
       // has a much better chance of immediate playback on iOS PWA.
       c.addEventListener(
@@ -305,6 +310,7 @@
   }
 
   function enterScene(id) {
+    if (current) return; // Ignore a second activation during the entrance fade.
     const s = SCENES[id];
     if (!s) return;
     current = s;
@@ -352,7 +358,9 @@
     pianoVol.value = String(pianoLevel);
 
     splash.classList.add('hidden');
+    splash.inert = true;
     sceneEl.classList.remove('hidden');
+    sceneEl.inert = false;
     videoRetry.hidden = true;
     videoStatusText.textContent = 'Loading scene…';
     videoStatus.hidden = reducedMotion.matches || vid.readyState >= 3;
@@ -376,6 +384,9 @@
     clearTimeout(idleTimer);
     idleTimer = setTimeout(hideCtrl, 5500);
     backBtn.focus({ preventScroll: true });
+    requestAnimationFrame(() => {
+      if (current === s) backBtn.focus({ preventScroll: true });
+    });
 
     // ═══ STEP 5: Retry cascade ═══
     // iOS audio session can take time to fully initialize.
@@ -466,9 +477,14 @@
     }
     audio.stopAll();
     sceneEl.classList.add('hidden');
+    sceneEl.inert = true;
     splash.classList.remove('hidden');
-    document.querySelector('[data-scene="' + (Object.keys(SCENES).find(id => SCENES[id] === current) || 'tokyo') + '"]').focus();
+    splash.inert = false;
+    const returnCard = document.querySelector('[data-scene="' + (Object.keys(SCENES).find(id => SCENES[id] === current) || 'tokyo') + '"]');
     current = null;
+    requestAnimationFrame(() => {
+      if (!current) returnCard.focus({ preventScroll: true });
+    });
     lastPreparedSceneId = null;
     hideSilentAudioNote();
   }
@@ -606,6 +622,7 @@
     ctrl.inert = false;
   }
   function hideCtrl() {
+    if (window.matchMedia('(hover: hover)').matches && ctrl.matches(':hover')) return;
     if (ctrl.contains(document.activeElement) && document.activeElement.matches(':focus-visible')) return;
     ctrl.classList.add('hidden');
     ctrl.inert = true;
