@@ -30,11 +30,14 @@ The fifth pass rejected a fixed-height caption treatment: enlarged text clipped,
 
 ### Checks and results
 
-- **Contrast:** Conservative calculations use full-white image pixels behind the actual gradient and ignore the text shadows. Across the measured default viewports, title contrast is at least 4.43:1 and explanation contrast at least 4.58:1. Titles are 24px or larger; this is a targeted contrast calculation, not a full WCAG certification.
+- **Contrast:** Conservative calculations use full-white image pixels behind the actual gradient and ignore the text shadows. At rest, across the measured default viewports, title contrast is at least 4.43:1 and explanation contrast at least 4.58:1. These calculations do not include the existing brief arrival-opacity transition. Titles are 24px or larger; this is a targeted contrast calculation, not a full WCAG certification.
 - **Responsive layout:** 320×568, 375×812, 390×844, 768×1024, 812×375, 1366×768 and 1440×900 have no intersecting cards, horizontally overflowing content or clipped captions. Once the existing arrival animation settles, both 375×812 portrait and 812×375 landscape fit the complete chooser.
 - **Enlarged text and failure states:** At 320×568 with root text doubled to 200%, captions stay inside their cards. The same check passes with external fonts and images blocked, and reduced motion enabled; scene entry and keyboard return still work.
 - **Touch and keyboard:** All four cards open their scene under touch emulation. Desktop focus moves to Back and returns to the correct card after using the clock.
 - **Existing features:** All seven rain and seven music choices play. Pause/resume, rain mute/volume, clock sizing and dimming, fullscreen, diagnostics and Back passed regression checks. Audio and playback implementation files are unchanged.
 - **Runtime:** No page errors in completed normal and fallback flows. Git whitespace checks pass. The pinned Impeccable detector returns the same three existing warning records for Inter and incumbent gradient text, not a new warning associated with the card captions.
+- **Hosted preview:** A fresh context confirms 28.64px regular-weight silver-grey titles and 11.5px descriptions on desktop, and 25.6px titles with no overflow at 375×812. All four scenes play video and rain, open/resize the clock, and return focus to their card. A restricted opaque iframe also opens a scene and returns successfully, with no page errors.
+
+The preview uploader's blanket fullscreen-API inspection was bypassed for the already-guarded standalone fullscreen feature, as in the preceding releases. Hosted and restricted-frame runtime checks provide the verification rather than a claim of passing that automatic inspection.
 
 The existing main heading, italic phrase, images, scene order, rain files, video and clock styling are untouched. No new decorative effect or animation was added. Physical-device and full assistive-technology certification are not claimed; subjective typography preference remains for the user's review.
