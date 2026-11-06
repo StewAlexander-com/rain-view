@@ -12,7 +12,7 @@ Scope: refine the captions on the four photo cards. Preserve the splash heading,
 
 ## Verification
 
-Implemented as version 1.2.2 on `polish/cinematic-card-typography`. Public release remains separate from the private preview until approved.
+Implemented as version 1.2.2 on `polish/cinematic-card-typography`. The user approved publishing this refinement to `main` and GitHub Pages on November 6, 2026 (America/New_York).
 
 ### Final type and color
 
