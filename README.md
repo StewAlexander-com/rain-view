@@ -31,12 +31,13 @@ Tap the clock icon in the upper right to activate an elegant overlay clock — p
 
 - **Cinzel typeface** — Roman-proportioned serif with a brushed brass metallic finish (regular weight, not bold)
 - **Embossed gold effect** — gradient text fill sweeping from warm ruddy brass to lighter gold, with bevel shadows creating a raised stamped-metal appearance
-- **Pinch to resize** — two-finger pinch anywhere on screen (mobile) or scroll wheel (desktop) to scale from compact to screen-filling (0.4x–3.0x)
-- **Background dims** when the clock is active for clear readability against any scene
-- **Tap to dismiss** — tap the dimmed background or the clock button to close
+- **Pinch to resize** — two-finger pinch or scroll wheel, plus accessible ± buttons and keyboard +/−. Sizing is bounded by the viewport and stays centered after rotation.
+- **Adjustable background dimming** — 25%–88% content dimming; this does not change hardware screen brightness.
+- **Tap to reveal** — tap the background to reveal clock controls; use the clock button or Escape to close the clock.
 - **Always accessible** — clock button stays visible in the top-right even when audio controls auto-hide
 - **Controls suppressed** — audio controls hide while the clock is active so pinch gestures aren't intercepted
-- **Visual hint** — subtle expand-arrows icon pulses briefly on activation to signal resizability
+- **Quiet controls** — size/dimmer controls and the resize hint disappear after 4.5 seconds of inactivity.
+- **Screen wake lock** — best-effort while the page is visible; a quiet status indicates whether the browser granted it. Battery policy and device settings can override it.
 
 ![Sleep Clock — Mobile Portrait](screenshots/clock-mobile.jpg)
 
@@ -53,6 +54,8 @@ Tap the clock icon in the upper right to activate an elegant overlay clock — p
 | Window | Rain tapping on glass |
 | Forest | Rain on leaves and canopy |
 | Thunder | Rain with distant rumble |
+| Leaves | Soft rain through foliage |
+| Roof | Rain pattering overhead |
 
 ### Piano Variants
 
@@ -63,21 +66,24 @@ Tap the clock icon in the upper right to activate an elegant overlay clock — p
 | Melancholic | Emotional, modern classical |
 | Ethereal | Ambient, spacious, slow |
 | Pastoral | Light, meditative, Satie-like |
+| Guitar | Gentle guitar ambience |
+| Cello | Cello and synth ambience |
 
-Piano starts muted — slide the volume up to layer it in. Each scene has a default rain + piano pairing, but you can mix and match freely.
+Piano starts muted. Select a music variant, press its Play button or raise its volume to layer it in. Each scene has a default rain and music pairing, but you can mix and match freely. On iOS, use device volume controls; the direct-media compatibility path is preserved.
 
 ---
 
 ## Features
 
 - **AI-generated looping video** — each scene is an 8-second cinematic loop with rain baked into the animation
-- **5 rain + 5 piano variants** — real recordings, professionally cleaned and seamless-looped
+- **7 rain + 7 music variants** — existing recordings retained; rain conservatively remastered near −23 LUFS with a 35 Hz high-pass.
 - **Sleep clock** — elegant resizable brass clock overlay for bedside use
-- **Mobile-first** — 720p mobile video variants (~400KB vs ~7MB desktop), compact touch-friendly controls
+- **Mobile-first** — clearer 1280×720 mobile encodes (~2.7–3.7 MiB), touch-friendly controls, portrait and landscape clock sizing.
 - **iOS PWA optimized** — auto-recovery from MEDIA_ERR_DECODE on cold start, Web Audio API bypassed on iOS
 - **Installable** — PWA manifest, home screen icon, standalone display mode
 - **Social sharing** — Open Graph + Twitter Card meta tags with preview image
-- **Auto-hiding controls** — glassmorphism UI fades after 4 seconds, reappears on touch
+- **Auto-hiding controls** — audio controls fade after 5.5 seconds and clock adjustments after 4.5 seconds, with keyboard-focus protection.
+- **Reduced motion** — static scene poster instead of moving video when the system requests reduced motion.
 - **Zero dependencies** — vanilla HTML/CSS/JS, no build tools, no npm
 
 ---
@@ -110,10 +116,11 @@ Triple-tap the scene title to show a real-time audio diagnostic overlay. Shows A
 
 ### Performance
 
-- Desktop video: ~7MB per scene (1080p)
-- Mobile video: ~400KB per scene (720p, auto-detected)
-- Audio: 5 rain + 5 piano MP3s, professionally EQ'd and seamless-looped
-- Total mobile payload: ~3MB for first scene load
+- Desktop video: ~6–7 MiB per scene (1280×720 originals).
+- Mobile video: ~2.7–3.7 MiB per scene (1280×720, H.264 CRF 21).
+- Audio: seven rain and seven music MP3s. The landing page fetches none; entering a scene loads its selected pair, other choices load on selection.
+- Video uses a 650ms two-element dissolve; rain uses a 600ms equal-power Web Audio handoff. iOS uses native media loops to avoid overlapping uncontrollable-volume elements.
+- See [the ten-pass polish audit](POLISH-AUDIT.md) for measured loudness, trade-offs, QA and real-device limitations.
 
 ---
 
@@ -123,7 +130,7 @@ Triple-tap the scene title to show a real-time audio diagnostic overlay. Shows A
 **Piano audio** — [Pixabay Music](https://pixabay.com/music/) (Pixabay Content License)
 **Scene video/images** — AI-generated
 
-All audio professionally cleaned: high-pass filtered (60Hz), low-pass filtered (14kHz), normalized, seamless crossfade loop spliced. See [AUDIO-CREDITS.txt](AUDIO-CREDITS.txt) for individual track attributions.
+The bedside refinement applies a conservative 35 Hz high-pass and measured loudness alignment to the existing rain tracks. It does not add new recordings or claim to remove existing distortion. See [AUDIO-CREDITS.txt](AUDIO-CREDITS.txt) for individual track attribution and provenance limits; the files have mixed source licenses.
 
 ## License
 

@@ -46,7 +46,7 @@
    * Bump when any MP3 under assets/ is replaced. Browsers and CDNs cache
    * audio URLs by path; a query string forces a fresh fetch (same file name).
    */
-  var RV_AUDIO_ASSET_VER = '19';
+  var RV_AUDIO_ASSET_VER = '20';
 
   function withAssetVer(path) {
     var sep = path.indexOf('?') >= 0 ? '&' : '?';
@@ -77,7 +77,7 @@
       try {
         var t = audioCtx.currentTime;
         gainNode.gain.cancelScheduledValues(t);
-        gainNode.gain.setValueAtTime(value, t);
+        gainNode.gain.setTargetAtTime(value, t, .018);
         return;
       } catch (e) {}
     }
@@ -421,6 +421,7 @@
     this.currentEl = null;
     this._volume = 1;
     this._paused = false;
+    this._starting = false;
     this._loopMonitorRaf = null;
     this._loopIntervalId = null;
     this._loopHandoffScheduled = false;
@@ -432,8 +433,8 @@
       (function (name, url) {
         var a = document.createElement('audio');
         var b = document.createElement('audio');
-        a.loop = false;
-        b.loop = false;
+        a.loop = shouldSkipMES();
+        b.loop = shouldSkipMES();
         a.preload = 'auto';
         b.preload = 'auto';
         a.volume = 1;
@@ -454,9 +455,11 @@
         });
         a._rvTwin = b;
         b._rvTwin = a;
-        var loadP = fetchWholeFileIntoDualAudio(a, b, url);
-        a._rvLoad = loadP;
-        b._rvLoad = loadP;
+        // Load only selected tracks, not all 28 elements on the splash.
+        a._rvEnsureLoaded = b._rvEnsureLoaded = function () {
+          if (!a._rvLoad) a._rvLoad = b._rvLoad = fetchWholeFileIntoDualAudio(a, b, url);
+          return a._rvLoad;
+        };
         attachEndedLoopRecovery(self, a);
         attachEndedLoopRecovery(self, b);
         self.audios[name] = a;
@@ -465,13 +468,12 @@
   }
 
   AmbientLoopLayer.prototype._getLoopLeadSec = function (duration) {
-    var lead = 0.3;
+    var lead = .9;
     if (duration > 0 && isFinite(duration)) {
-      lead = Math.min(lead, Math.max(0.09, duration * 0.22));
+      lead = Math.min(lead, Math.max(.12, duration * .22));
     }
     if (this._mobileProfile) {
       lead += 0.1;
-      lead = Math.min(0.48, lead);
     }
     return lead;
   };
@@ -514,6 +516,11 @@
   AmbientLoopLayer.prototype._startLoopMonitor = function () {
     var self = this;
     self._stopLoopMonitor();
+    // iOS ignores element volume, so overlapping twins would double sound.
+    if (shouldSkipMES()) {
+      if (self.currentEl) self.currentEl.loop = true;
+      return;
+    }
     var hidden = typeof document !== 'undefined' && document.hidden;
     /* Background tabs throttle rAF; interval keeps handoff alive on mobile Safari. */
     if (hidden) {
@@ -535,7 +542,7 @@
     var self = this;
     var gen = self._generation;
     var ctx = self._audioCtx;
-    var crossfadeMs = self._mobileProfile ? 80 : 56;
+    var crossfadeMs = 600;
     var u = self._volume;
 
     try {
@@ -597,10 +604,10 @@
           return;
         }
         var p = Math.min(1, (now - t0) / crossfadeMs);
-        ampFrom(1 - p);
-        ampTo(p);
+        ampFrom(Math.cos(p * Math.PI / 2));
+        ampTo(Math.sin(p * Math.PI / 2));
         if (p < 1) {
-          requestAnimationFrame(cf);
+          setTimeout(function () { cf(performance.now()); }, 20);
         } else {
           try {
             fromEl.pause();
@@ -612,7 +619,7 @@
           self._loopHandoffScheduled = false;
         }
       }
-      requestAnimationFrame(cf);
+      cf(performance.now());
     });
   };
 
@@ -636,6 +643,7 @@
 
     this._generation++;
     var gen = this._generation;
+    this._starting = true;
 
     var outgoing = this.currentEl;
     if (outgoing && outgoing !== incoming) {
@@ -673,6 +681,7 @@
       if (gen !== self._generation) return;
       resumeActiveEngineCtx();
       if (self._paused) {
+        self._starting = false;
         if (self._gainNode && !incoming._rvMESFailed) {
           applyGain(self._gainNode, targetVol, self._audioCtx);
         } else {
@@ -684,6 +693,7 @@
       }
       /* Volume ~0: never call play() — avoids full-level bleed when MES fails on iOS. */
       if (targetVol < 0.001) {
+        self._starting = false;
         pauseAndResetTwin(incoming);
         if (self._gainNode && !incoming._rvMESFailed) {
           applyGain(self._gainNode, 0, self._audioCtx);
@@ -700,6 +710,7 @@
         }
         function afterPlayOk(ok) {
           if (gen !== self._generation) return;
+          self._starting = false;
           if (!ok) {
             if (self._gainNode && !incoming._rvMESFailed) {
               applyGain(self._gainNode, targetVol, self._audioCtx);
@@ -760,8 +771,11 @@
       }
     }
 
-    var loadP = incoming._rvLoad;
-    if (loadP && typeof loadP.then === 'function') {
+    var loadP = incoming._rvEnsureLoaded ? incoming._rvEnsureLoaded() : incoming._rvLoad;
+    if (shouldSkipMES()) {
+      // Keep first play inside the selecting gesture on iOS.
+      playAfterReady();
+    } else if (loadP && typeof loadP.then === 'function') {
       loadP.then(playAfterReady).catch(playAfterReady);
     } else {
       playAfterReady();
@@ -835,6 +849,8 @@
     if (paused === this._paused) return;
     this._paused = paused;
     this._generation++;
+    this._loopHandoffScheduled = false;
+    this._starting = false;
     var el = this.currentEl;
     if (paused) {
       this._stopLoopMonitor();
@@ -882,6 +898,7 @@
     this._generation++;
     this._fadeStamp++;
     this._paused = false;
+    this._starting = false;
     for (var k in this.audios) {
       if (!Object.prototype.hasOwnProperty.call(this.audios, k)) continue;
       var el = this.audios[k];
@@ -904,6 +921,7 @@
   };
 
   AmbientLoopLayer.prototype.recoverIfNeeded = function () {
+    if (this._starting) return;
     if (this._paused) return;
     if (this._volume < 0.001) return;
     var el = this.currentEl;
@@ -919,7 +937,7 @@
 
       // Create fresh element
       var fresh = document.createElement('audio');
-      fresh.loop = false;
+      fresh.loop = shouldSkipMES();
       fresh.preload = 'auto';
       fresh.setAttribute('playsinline', '');
       fresh.playsInline = true;
@@ -929,7 +947,7 @@
 
       // Create fresh twin
       var freshTwin = document.createElement('audio');
-      freshTwin.loop = false;
+      freshTwin.loop = shouldSkipMES();
       freshTwin.preload = 'auto';
       freshTwin.setAttribute('playsinline', '');
       freshTwin.playsInline = true;
@@ -1027,7 +1045,7 @@
         leaves: 'assets/rain-leaves.mp3',
         roof: 'assets/rain-roof.mp3'
       }),
-      { fadeInMs: 0 }
+      { fadeInMs: 850 }
     );
 
     this.pianoLayer = new AmbientLoopLayer(
@@ -1160,74 +1178,7 @@
     this._started = true;
     this.ensureWebAudio();
     this.resumeAudioContextIfNeeded();
-    // Kick all audio elements to start buffering.
-    // iOS ignores preload="auto" — it only loads when play() is called.
-    // We briefly play() + pause() each element at volume 0 to force the fetch.
-    this._preloadAll();
-  };
-
-  AudioEngine.prototype._preloadAll = function () {
-    var layers = [this.rainLayer, this.pianoLayer];
-    for (var i = 0; i < layers.length; i++) {
-      var layer = layers[i];
-      if (!layer || !layer.audios) continue;
-      var names = Object.keys(layer.audios);
-      for (var j = 0; j < names.length; j++) {
-        var el = layer.audios[names[j]];
-        if (!el) continue;
-        // Force iOS to start buffering by touching the element
-        try {
-          if (el.readyState < 3) { // HAVE_FUTURE_DATA
-            el.volume = 0;
-            el.muted = true;
-            var p = el.play();
-            if (p && typeof p.then === 'function') {
-              (function (audioEl) {
-                p.then(function () {
-                  audioEl.pause();
-                  audioEl.currentTime = 0;
-                  audioEl.muted = false;
-                  audioEl.volume = 1;
-                }).catch(function () {
-                  audioEl.muted = false;
-                  audioEl.volume = 1;
-                });
-              })(el);
-            } else {
-              el.pause();
-              el.currentTime = 0;
-              el.muted = false;
-              el.volume = 1;
-            }
-          }
-          // Also kick the twin
-          var twin = el._rvTwin;
-          if (twin && twin.readyState < 3) {
-            twin.volume = 0;
-            twin.muted = true;
-            var p2 = twin.play();
-            if (p2 && typeof p2.then === 'function') {
-              (function (audioEl) {
-                p2.then(function () {
-                  audioEl.pause();
-                  audioEl.currentTime = 0;
-                  audioEl.muted = false;
-                  audioEl.volume = 1;
-                }).catch(function () {
-                  audioEl.muted = false;
-                  audioEl.volume = 1;
-                });
-              })(twin);
-            } else {
-              twin.pause();
-              twin.currentTime = 0;
-              twin.muted = false;
-              twin.volume = 1;
-            }
-          }
-        } catch (e) {}
-      }
-    }
+    // Selected tracks load in switchTo. No all-track play/pause race.
   };
 
   AudioEngine.prototype.setRainVariant = function (name) {

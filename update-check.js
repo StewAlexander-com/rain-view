@@ -11,7 +11,7 @@
 
   // Current version baked into the JS at deploy time.
   // Bump this when deploying a new version.
-  var CURRENT_VERSION = '1.1.1';
+  var CURRENT_VERSION = '1.2.0';
 
   var CHECK_DELAY = 5000;  // wait 5s after load before checking
   var CHECK_URL = 'version.json?_=' + Date.now(); // cache-bust the check itself

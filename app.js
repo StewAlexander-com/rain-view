@@ -4,7 +4,7 @@
 
   /** iOS WebKit ignores programmatic media.volume; sliders are hidden — fixed mix in enterScene. */
   const IOS_RAIN_VOL = 0.7;
-  const IOS_PIANO_VS_RAIN = 0.33;
+  const IOS_PIANO_VS_RAIN = 0;
 
   const IS_MOBILE = window.innerWidth <= 640 || ('ontouchstart' in window && window.innerWidth <= 1024);
 
@@ -41,16 +41,25 @@
   let lastPreparedSceneId = null;
   let silentAudioTimer = null;
   let crossfadeTimer = null;
+  let activeVideo = vid;
+  let loopCleanup = null;
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const videoStatus = document.getElementById('video-status');
+  const videoStatusText = document.getElementById('video-status-text');
+  const videoRetry = document.getElementById('video-retry');
 
   function safePlayVideo(maxAttempts) {
     maxAttempts = maxAttempts != null ? maxAttempts : 4;
-    if (!vid) return Promise.resolve(false);
+    const target = activeVideo;
+    if (!target || reducedMotion.matches || !current || document.hidden) return Promise.resolve(false);
+    const source = target.src;
     let attempt = 0;
     const delay = isIOSAudioUi() ? 140 : 90;
     function step() {
+      if (!current || target.src !== source || document.hidden) return Promise.resolve(false);
       attempt++;
       try {
-        const p = vid.play();
+        const p = target.play();
         if (p && typeof p.then === 'function') {
           return p.then(
             () => true,
@@ -169,11 +178,25 @@
         if (!current) return;
         safePlayVideo(5).then(() => {});
       }
-      vid.addEventListener('stalled', retryIfActive);
-      vid.addEventListener('error', retryIfActive);
-      vid.addEventListener('suspend', retryIfActive);
+      [vid, vid2].forEach(video => {
+        video.addEventListener('playing', () => { videoStatus.hidden = true; });
+        video.addEventListener('error', () => {
+          if (!current || video !== activeVideo) return;
+          videoStatusText.textContent = 'Video unavailable. Rain and clock are still available.';
+          videoRetry.hidden = false;
+          videoStatus.hidden = false;
+        });
+      });
+      videoRetry.addEventListener('click', () => {
+        if (!current) return;
+        videoStatusText.textContent = 'Loading scene…';
+        videoRetry.hidden = true;
+        activeVideo.load();
+        retryIfActive();
+      });
       document.addEventListener('visibilitychange', function () {
-        if (document.hidden || !current) return;
+        if (!current) return;
+        if (document.hidden) { vid.pause(); vid2.pause(); return; }
         retryIfActive();
       });
       window.addEventListener('pageshow', function () {
@@ -210,8 +233,8 @@
         el.addEventListener('input', apply);
         el.addEventListener('change', apply);
       }
-      bindVolumeRange(rainVol, v => audio.setRainVolume(v));
-      bindVolumeRange(pianoVol, v => audio.setPianoVolume(v));
+      bindVolumeRange(rainVol, v => { audio.setRainVolume(v); syncPlayPauseUi(); });
+      bindVolumeRange(pianoVol, v => { audio.setPianoVolume(v); syncPlayPauseUi(); });
     }
 
     // Rain variant pills
@@ -220,8 +243,7 @@
       if (!pill || !rainPills.contains(pill)) return;
       const variant = pill.getAttribute('data-variant');
       if (!variant) return;
-      rainPills.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
-      pill.classList.add('active');
+      setActivePill(rainPills, variant);
       audio.setRainVariant(variant);
     });
 
@@ -231,18 +253,38 @@
       if (!pill || !pianoPills.contains(pill)) return;
       const variant = pill.getAttribute('data-variant');
       if (!variant) return;
-      pianoPills.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
-      pill.classList.add('active');
+      setActivePill(pianoPills, variant);
+      // Choosing a piano is an explicit request to hear it, even at the
+      // rain-only startup default.
+      if (+pianoVol.value === 0) {
+        pianoVol.value = '0.23';
+        audio.setPianoVolume(.23);
+      }
       audio.setPianoVariant(variant);
+      syncPlayPauseUi();
     });
 
     rainPlayPause.addEventListener('click', e => {
       e.stopPropagation();
+      if (+rainVol.value === 0) {
+        rainVol.value = '0.7';
+        audio.setRainVolume(.7);
+        audio.rainLayer.setPaused(false);
+        syncPlayPauseUi();
+        return;
+      }
       audio.toggleRainPause();
       syncPlayPauseUi();
     });
     pianoPlayPause.addEventListener('click', e => {
       e.stopPropagation();
+      if (+pianoVol.value === 0) {
+        pianoVol.value = '0.23';
+        audio.setPianoVolume(.23);
+        audio.pianoLayer.setPaused(false);
+        syncPlayPauseUi();
+        return;
+      }
       audio.togglePianoPause();
       syncPlayPauseUi();
     });
@@ -264,6 +306,10 @@
     const s = SCENES[id];
     if (!s) return;
     current = s;
+    activeVideo = vid;
+    // Retain economical phone assets, now encoded from the original 720p
+    // footage rather than the old 406p derivatives.
+    const videoSrc = s.video + '?v=60';
 
     // ═══ STEP 1: Activate iOS audio session in the gesture handler ═══
     // mobile.js plays a silent MP3 + creates/resumes AudioContext.
@@ -284,12 +330,14 @@
       vid.preload = 'auto';
       vid.playsInline = true;
       vid.muted = true;
-      vid.src = s.video;
-      vid.load();
+      if (!reducedMotion.matches && vid.getAttribute('src') !== videoSrc) {
+        vid.src = videoSrc;
+        vid.load();
+      }
     } catch (e) {}
     // Synchronous play attempt in the gesture — best chance of working
     safePlayVideo(6).then(() => {});
-    startCrossfadeLoop(s.video);
+    startCrossfadeLoop(videoSrc);
     titleEl.textContent = s.title;
 
     // ═══ STEP 3: Set UI state ═══
@@ -303,6 +351,9 @@
 
     splash.classList.add('hidden');
     sceneEl.classList.remove('hidden');
+    videoRetry.hidden = true;
+    videoStatusText.textContent = 'Loading scene…';
+    videoStatus.hidden = reducedMotion.matches || vid.readyState >= 3;
     hideSilentAudioNote();
 
     // ═══ STEP 4: Start audio ═══
@@ -320,6 +371,9 @@
 
     syncPlayPauseUi();
     showCtrl();
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(hideCtrl, 5500);
+    backBtn.focus({ preventScroll: true });
 
     // ═══ STEP 5: Retry cascade ═══
     // iOS audio session can take time to fully initialize.
@@ -373,8 +427,8 @@
         vid.preload = 'auto';
         vid.playsInline = true;
         vid.muted = true;
-        if (vid.src !== s.video) {
-          vid.src = s.video;
+        if (!reducedMotion.matches && vid.getAttribute('src') !== s.video + '?v=60') {
+          vid.src = s.video + '?v=60';
           vid.load();
         }
       }
@@ -382,8 +436,8 @@
   }
 
   function syncPlayPauseUi() {
-    const rPaused = audio.isRainPaused();
-    const pPaused = audio.isPianoPaused();
+    const rPaused = audio.isRainPaused() || +rainVol.value === 0;
+    const pPaused = audio.isPianoPaused() || +pianoVol.value === 0;
     rainPlayPause.classList.toggle('is-paused', rPaused);
     pianoPlayPause.classList.toggle('is-paused', pPaused);
     rainPlayPause.setAttribute('aria-label', rPaused ? 'Play rain' : 'Pause rain');
@@ -393,10 +447,16 @@
   }
 
   function exitScene() {
+    document.dispatchEvent(new Event('rainview:sceneexit'));
+    clearTimeout(idleTimer);
+    stopDiagLoop();
+    diagVisible = false;
+    document.getElementById('audio-diag').hidden = true;
     exitFullscreenIfActive().then(() => syncFullscreenUi());
     stopCrossfadeLoop();
     vid.pause();
-    vid.src = '';
+    vid.removeAttribute('src');
+    vid.load();
 
     // Release screen wake lock
     if (typeof RainViewWakeLock !== 'undefined') {
@@ -404,8 +464,10 @@
     }
     audio.stopAll();
     sceneEl.classList.add('hidden');
-    setTimeout(() => splash.classList.remove('hidden'), 100);
+    splash.classList.remove('hidden');
+    document.querySelector('[data-scene="' + (Object.keys(SCENES).find(id => SCENES[id] === current) || 'tokyo') + '"]').focus();
     current = null;
+    lastPreparedSceneId = null;
     hideSilentAudioNote();
   }
 
@@ -472,7 +534,9 @@
 
   function setActivePill(container, value) {
     container.querySelectorAll('.pill').forEach(p => {
-      p.classList.toggle('active', p.getAttribute('data-variant') === value);
+      const selected = p.getAttribute('data-variant') === value;
+      p.classList.toggle('active', selected);
+      p.setAttribute('aria-pressed', String(selected));
     });
   }
 
@@ -510,10 +574,40 @@
     ctrl.addEventListener('mouseleave', () => { if (current) idleTimer = setTimeout(hideCtrl, 5500); });
     ctrl.addEventListener('touchstart', () => clearTimeout(idleTimer), { passive: true });
     ctrl.addEventListener('touchend', () => { if (current) idleTimer = setTimeout(hideCtrl, 5500); }, { passive: true });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Tab' && current && !isClockActive()) {
+        showCtrl();
+        clearTimeout(idleTimer);
+      }
+    });
+    ctrl.addEventListener('focusin', () => { showCtrl(); clearTimeout(idleTimer); });
+    ctrl.addEventListener('focusout', () => {
+      if (current) idleTimer = setTimeout(hideCtrl, 5500);
+    });
+    reducedMotion.addEventListener('change', () => {
+      if (!current) return;
+      if (reducedMotion.matches) {
+        stopCrossfadeLoop();
+        vid.pause();
+        activeVideo = vid;
+      } else {
+        if (!vid.getAttribute('src')) vid.src = current.video + '?v=60';
+        startCrossfadeLoop(current.video + '?v=60');
+        safePlayVideo();
+      }
+    });
   }
 
-  function showCtrl() { ctrl.classList.remove('hidden'); }
-  function hideCtrl() { ctrl.classList.add('hidden'); }
+  function showCtrl() {
+    if (isClockActive()) return;
+    ctrl.classList.remove('hidden');
+    ctrl.inert = false;
+  }
+  function hideCtrl() {
+    if (ctrl.contains(document.activeElement) && document.activeElement.matches(':focus-visible')) return;
+    ctrl.classList.add('hidden');
+    ctrl.inert = true;
+  }
 
   // ═══ Seamless video crossfade loop ═══
   // Vid A loops natively (never stops/seeks).
@@ -521,81 +615,52 @@
   // to mask the jump, then fades back out. Vid A is never interrupted.
   function startCrossfadeLoop(videoSrc) {
     stopCrossfadeLoop();
-    if (!vid || !vid2) return;
-
+    activeVideo = vid;
+    if (!vid || !vid2 || reducedMotion.matches) return;
     vid2.src = videoSrc;
     vid2.muted = true;
     vid2.playsInline = true;
     vid2.load();
     vid2.classList.remove('visible');
-
-    function beginLoop() {
-      var dur = vid.duration;
-      if (!dur || isNaN(dur) || dur < 2) return;
-
-      // Vid B will play a segment from the middle of the clip
-      // that bridges across the loop point of vid A
-      var bridgeStart = dur * 0.3;  // start playing from 30% in
-      var fadeInTime = 1.5;         // seconds, matches CSS transition
-
-      function scheduleNext() {
-        if (!current) return;
-
-        // Schedule the bridge to start fading in 1.5s before vid A's loop point
-        var timeLeft = dur - vid.currentTime;
-        var delay = Math.max(0, (timeLeft - fadeInTime) * 1000);
-
+    var cancelled = false, transitioning = false;
+    function monitor() {
+      if (cancelled || transitioning || !current || document.hidden) return;
+      var outgoing = activeVideo;
+      if (!isFinite(outgoing.duration) || outgoing.duration - outgoing.currentTime > .95) return;
+      var incoming = outgoing === vid ? vid2 : vid;
+      if (incoming.readyState < 3) return; // Native loop remains the fallback.
+      transitioning = true;
+      incoming.currentTime = 0;
+      incoming.play().then(function () {
+        if (cancelled) { incoming.pause(); return; }
+        // The bottom video remains opaque: only the top layer dissolves,
+        // avoiding brightness dips from two transparent surfaces.
+        vid2.classList.toggle('visible', incoming === vid2);
+        activeVideo = incoming;
         crossfadeTimer = setTimeout(function () {
-          if (!current) return;
-
-          // Skip when clock is active (dim overlay amplifies any opacity change)
-          var clockOverlay = document.getElementById('clock-overlay');
-          if (clockOverlay && !clockOverlay.classList.contains('hidden')) {
-            scheduleNext();
-            return;
-          }
-
-          // Fade vid B in — it plays a middle segment over the seam
-          vid2.currentTime = bridgeStart;
-          vid2.play().catch(function () {});
-          vid2.classList.add('visible');
-
-          // After vid A has looped and is playing smoothly again, fade B out
-          setTimeout(function () {
-            if (!current) return;
-            vid2.classList.remove('visible');
-
-            // Pause vid B after fade-out completes to save resources
-            setTimeout(function () {
-              if (vid2 && !vid2.classList.contains('visible')) {
-                vid2.pause();
-              }
-            }, fadeInTime * 1000);
-
-            scheduleNext();
-          }, fadeInTime * 1000 + 500);
-        }, delay);
-      }
-
-      scheduleNext();
+          outgoing.pause();
+          transitioning = false;
+        }, 650);
+      }).catch(function () { transitioning = false; });
     }
-
-    if (vid.readyState >= 1 && vid.duration) {
-      beginLoop();
-    } else {
-      vid.addEventListener('loadedmetadata', function onMeta() {
-        vid.removeEventListener('loadedmetadata', onMeta);
-        beginLoop();
-      });
-    }
+    vid.addEventListener('timeupdate', monitor);
+    vid2.addEventListener('timeupdate', monitor);
+    loopCleanup = function () {
+      cancelled = true;
+      vid.removeEventListener('timeupdate', monitor);
+      vid2.removeEventListener('timeupdate', monitor);
+    };
   }
 
   function stopCrossfadeLoop() {
+    if (loopCleanup) loopCleanup();
+    loopCleanup = null;
     clearTimeout(crossfadeTimer);
     crossfadeTimer = null;
     if (vid2) {
       vid2.pause();
-      vid2.src = '';
+      vid2.removeAttribute('src');
+      vid2.load();
       vid2.classList.remove('visible');
     }
   }

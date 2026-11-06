@@ -33,8 +33,14 @@ https://mixkit.co/free-sound-effects/rain/
 Licensed under the Mixkit Sound Effects Free License:
 https://mixkit.co/license/#sfxFree
 
-Other rain MP3s in assets/ (gentle, window, forest, thunder) are unchanged from
-the original Rain View bundle; add credits here if you replace them.
+Other rain recordings (gentle, window, forest, thunder) originate from the
+original Rain View bundle. Their original attribution was not recorded there;
+this polish does not establish or alter their licensing.
+
+2026-11 bedside polish: all seven existing rain recordings were conservatively
+remastered with a 35 Hz high-pass and measured loudness alignment near -23 LUFS.
+No new recordings, denoising, noise gating or replacement sound were introduced.
+Existing attribution and license terms continue to apply.
 
 
 New Music Tracks (Pixabay Content License)
@@ -57,4 +63,3 @@ Leaves     rain-leaves.mp3     "Rain on Leaves" by StarryMelodiesoftheWind
 
 Roof       rain-roof.mp3       "Rain Sounds on a Tin Roof 01" by gugunxyz
                                https://pixabay.com/sound-effects/nature-rain-sounds-on-a-tin-roof-01-464648/
-

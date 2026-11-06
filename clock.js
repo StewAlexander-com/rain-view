@@ -1,161 +1,131 @@
-/* ═══ Rain View — clock.js ═══
-   Elegant overlay clock with pinch-to-resize.
-   Scales via font-size so flex centering stays intact.
-   Pinch target is the entire overlay, not just the clock face.
-*/
+/* Rain View: the original brass clock, refined for bedside use. */
 (function () {
   'use strict';
+  var overlay = document.getElementById('clock-overlay');
+  var scene = document.getElementById('scene');
+  var time = document.getElementById('clock-time');
+  var ampm = document.getElementById('clock-ampm');
+  var toggle = document.getElementById('clock-toggle');
+  var tools = document.getElementById('clock-tools');
+  var ctrl = document.getElementById('ctrl');
+  var smaller = document.getElementById('clock-smaller');
+  var larger = document.getElementById('clock-larger');
+  var dimmer = document.getElementById('clock-dimmer');
+  var active = false, scale = 1, tickTimer, idleTimer, pinchDistance = 0, pinchScale = 1;
 
-  var overlay   = document.getElementById('clock-overlay');
-  var timeEl    = document.getElementById('clock-time');
-  var ampmEl    = document.getElementById('clock-ampm');
-  var hintEl    = document.getElementById('clock-hint');
-  var toggleBtn = document.getElementById('clock-toggle');
-  var ctrl      = document.getElementById('ctrl');
-
-  if (!overlay || !timeEl || !toggleBtn) return;
-
-  var active = false;
-  var tickInterval = null;
-
-  // ── Scale state (controls font-size multiplier) ──
-  var scale = 1;
-  var MIN_SCALE = 0.4;
-  var MAX_SCALE = 3.0;
-  var BASE_SIZE = 8;     // base vw for the time font
-  var BASE_AMPM = 2.5;   // base vw for AM/PM
-  var pinchStartDist = 0;
-  var pinchStartScale = 1;
-  var hintTimeout = null;
-
-  // ── Toggle clock ──
-  function toggle() {
-    active = !active;
-    overlay.classList.toggle('hidden', !active);
-    toggleBtn.classList.toggle('is-active', active);
-
-    if (active) {
-      tick();
-      applyScale();
-      tickInterval = setInterval(tick, 1000);
-      showHint();
-      // Hide audio controls so they don't interfere with pinch
-      if (ctrl) ctrl.classList.add('hidden');
-    } else {
-      clearInterval(tickInterval);
-      tickInterval = null;
-      // Restore audio controls
-      if (ctrl) ctrl.classList.remove('hidden');
-    }
+  function fit() {
+    // Reserve room for the widest 12-hour time, including after rotation.
+    var width = scene.clientWidth, height = scene.clientHeight;
+    var base = Math.min(width * .19, height * .24, 164);
+    var max = Math.min(width * .27, height * .40, 300);
+    var size = Math.min(base * scale, max);
+    time.style.fontSize = size + 'px';
+    ampm.style.fontSize = Math.max(13, size * .14) + 'px';
+    smaller.disabled = scale <= .55;
+    larger.disabled = base * scale >= max;
   }
 
-  // ── Update time ──
+  function resize(delta) {
+    var base = Math.min(scene.clientWidth * .19, scene.clientHeight * .24, 164);
+    var max = Math.min(scene.clientWidth * .27, scene.clientHeight * .40, 300);
+    scale = Math.max(.55, Math.min(max / base, scale + delta));
+    fit();
+    reveal();
+  }
+
   function tick() {
-    var now = new Date();
-    var h = now.getHours();
-    var m = now.getMinutes();
-    var ampm = h >= 12 ? 'PM' : 'AM';
-    var h12 = h % 12 || 12;
-    var mStr = m < 10 ? '0' + m : '' + m;
-
-    timeEl.textContent = h12 + ':' + mStr;
-    ampmEl.textContent = ampm;
+    var now = new Date(), h = now.getHours();
+    time.textContent = (h % 12 || 12) + ':' + String(now.getMinutes()).padStart(2, '0');
+    ampm.textContent = h >= 12 ? 'PM' : 'AM';
+    document.getElementById('clock-face').setAttribute('aria-label', time.textContent + ' ' + ampm.textContent);
+    clearTimeout(tickTimer);
+    if (active) tickTimer = setTimeout(tick, 60000 - Date.now() % 60000 + 20);
   }
 
-  // ── Show resize hint briefly ──
-  function showHint() {
-    if (!hintEl) return;
-    hintEl.classList.remove('fade-out');
-    clearTimeout(hintTimeout);
-    hintTimeout = setTimeout(function () {
-      hintEl.classList.add('fade-out');
-    }, 4000);
+  function reveal() {
+    if (!active) return;
+    scene.classList.remove('clock-resting');
+    tools.inert = false;
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(function () {
+      if (tools.contains(document.activeElement) || toggle === document.activeElement) return;
+      scene.classList.add('clock-resting');
+      tools.inert = true;
+    }, 4500);
   }
 
-  // ── Apply scale via font-size ──
-  function applyScale() {
-    timeEl.style.fontSize = (BASE_SIZE * scale) + 'vw';
-    ampmEl.style.fontSize = (BASE_AMPM * scale) + 'vw';
+  function setActive(value) {
+    active = value;
+    overlay.classList.toggle('hidden', !active);
+    overlay.inert = !active;
+    scene.classList.toggle('clock-active', active);
+    scene.classList.remove('clock-resting');
+    toggle.classList.toggle('is-active', active);
+    toggle.setAttribute('aria-pressed', String(active));
+    toggle.setAttribute('aria-label', active ? 'Hide clock' : 'Show clock');
+    ctrl.classList.toggle('hidden', active);
+    ctrl.inert = active;
+    clearTimeout(tickTimer);
+    clearTimeout(idleTimer);
+    if (active) { tick(); fit(); reveal(); }
   }
 
-  // ── Pinch-to-zoom on the ENTIRE overlay ──
-  function getTouchDist(e) {
-    if (e.touches.length < 2) return 0;
-    var dx = e.touches[0].clientX - e.touches[1].clientX;
-    var dy = e.touches[0].clientY - e.touches[1].clientY;
-    return Math.sqrt(dx * dx + dy * dy);
-  }
-
-  overlay.addEventListener('touchstart', function (e) {
-    if (e.touches.length === 2) {
-      e.preventDefault();
-      pinchStartDist = getTouchDist(e);
-      pinchStartScale = scale;
-    }
-  }, { passive: false });
-
-  overlay.addEventListener('touchmove', function (e) {
-    if (e.touches.length === 2) {
-      e.preventDefault();
-      var dist = getTouchDist(e);
-      if (pinchStartDist > 0) {
-        var newScale = pinchStartScale * (dist / pinchStartDist);
-        scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, newScale));
-        applyScale();
-      }
-    }
-  }, { passive: false });
-
-  overlay.addEventListener('touchend', function () {
-    pinchStartDist = 0;
+  toggle.addEventListener('click', function (e) {
+    e.stopPropagation();
+    // Mouse/touch focus should not keep bedtime chrome awake forever.
+    if (e.detail) toggle.blur();
+    setActive(!active);
   });
-
-  // Mouse wheel zoom for desktop
+  smaller.addEventListener('click', function () { resize(-.12); });
+  larger.addEventListener('click', function () { resize(.12); });
+  dimmer.addEventListener('input', function () {
+    overlay.style.setProperty('--clock-dim', dimmer.value / 100);
+    reveal();
+  });
+  tools.addEventListener('click', function (e) { e.stopPropagation(); reveal(); });
+  tools.addEventListener('pointerdown', function (e) { e.stopPropagation(); reveal(); });
+  tools.addEventListener('focusout', reveal);
+  scene.addEventListener('pointermove', reveal);
+  overlay.addEventListener('click', reveal);
   overlay.addEventListener('wheel', function (e) {
+    if (tools.contains(e.target)) return;
     e.preventDefault();
-    var delta = e.deltaY > 0 ? -0.08 : 0.08;
-    scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale + delta));
-    applyScale();
+    resize(e.deltaY > 0 ? -.08 : .08);
   }, { passive: false });
 
-  // Tap the dimmed background to dismiss clock
-  overlay.addEventListener('click', function (e) {
-    // Only dismiss if tapping the dim area, not the clock face itself
-    if (e.target === overlay || e.target.classList.contains('clock-dim')) {
-      toggle();
-    }
-  });
-
-  // ── Button handler ──
-  // Stop both touchstart and click from propagating — otherwise the
-  // auto-show-controls handler fires on touchstart, racing with the
-  // clock toggle and causing the controls to flash over the clock.
-  toggleBtn.addEventListener('touchstart', function (e) {
-    e.stopPropagation();
-  }, { passive: true });
-  toggleBtn.addEventListener('touchend', function (e) {
-    e.stopPropagation();
-  }, { passive: true });
-  toggleBtn.addEventListener('pointerdown', function (e) {
-    e.stopPropagation();
-  });
-  toggleBtn.addEventListener('click', function (e) {
-    e.stopPropagation();
-    toggle();
-  });
-
-  // ── Hide clock when leaving scene ──
-  var backBtn = document.getElementById('back');
-  if (backBtn) {
-    backBtn.addEventListener('click', function () {
-      if (active) {
-        active = false;
-        overlay.classList.add('hidden');
-        toggleBtn.classList.remove('is-active');
-        clearInterval(tickInterval);
-        tickInterval = null;
-        if (ctrl) ctrl.classList.remove('hidden');
-      }
-    });
+  function distance(e) {
+    return Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
   }
+  overlay.addEventListener('touchstart', function (e) {
+    if (tools.contains(e.target)) return;
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      pinchDistance = distance(e);
+      pinchScale = scale;
+    }
+    reveal();
+  }, { passive: false });
+  overlay.addEventListener('touchmove', function (e) {
+    if (e.touches.length !== 2 || !pinchDistance) return;
+    e.preventDefault();
+    resize(pinchScale * distance(e) / pinchDistance - scale);
+  }, { passive: false });
+  ['touchend', 'touchcancel'].forEach(function (event) {
+    overlay.addEventListener(event, function () { pinchDistance = 0; });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (!active) return;
+    reveal();
+    if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); setActive(false); toggle.focus(); }
+    if (e.target.matches('input,button')) return;
+    if (e.key === '+' || e.key === '=') resize(.12);
+    if (e.key === '-') resize(-.12);
+  }, true);
+  document.addEventListener('visibilitychange', function () {
+    if (active && !document.hidden) { tick(); fit(); }
+  });
+  document.addEventListener('rainview:sceneexit', function () { setActive(false); });
+  window.addEventListener('resize', fit);
+  if (document.fonts) document.fonts.ready.then(fit);
+  overlay.inert = true;
 })();
