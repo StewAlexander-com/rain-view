@@ -89,6 +89,8 @@
 
   function shouldOfferFullscreenControl() {
     if (!fullscreenApiAvailable()) return false;
+    const policy = document.permissionsPolicy || document.featurePolicy;
+    if (policy && policy.allowsFeature && !policy.allowsFeature('fullscreen')) return false;
     if (typeof RainViewMobile !== 'undefined' && RainViewMobile.isMobileAudioDevice && RainViewMobile.isMobileAudioDevice()) {
       return false;
     }
