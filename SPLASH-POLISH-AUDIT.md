@@ -68,6 +68,8 @@ The browser chooses the background according to viewport and pixel density; not 
 | Existing controls | Clock toggle, resizing and dimmer work; desktop fullscreen enters/exits; diagnostics open; Back returns to the chooser and stops media. |
 | Cold loading | Fresh touch context loads the responsive WebP assets and makes zero MP3 requests before scene selection. |
 | Runtime checks | No page errors in the completed normal, fallback and emulated-touch flows. JavaScript syntax and git whitespace checks pass. |
+| Hosted preview | Fresh hosted context loads the new 96px desktop/62.5px phone title and all four 800px WebP thumbnails. Each scene plays video and rain, opens/resizes/dims the clock, then restores focus to its card. The 375×812 chooser fits without overflow. |
+| Restricted embedded preview | Opaque `sandbox="allow-scripts"` frame opens a scene, plays video, and resizes the clock. The host-restricted fullscreen button stays hidden; no page errors. |
 
 ### Review findings and restraint
 
@@ -75,4 +77,6 @@ The pinned Impeccable detector ran successfully and returned three warning recor
 
 Manual/browser checks found and corrected phone-card overlap, aspect-ratio-driven horizontal overflow, focus loss during visibility transitions, reduced-motion focus timing, and insufficient card height under enlarged text. This is why the final pass was functional verification rather than a screenshot-only approval.
 
-No physical iPhone/Safari, Android-device, screen-reader or overnight playback trial is claimed. The earlier bedside audit's audio and wake-lock limitations continue to apply. Hosted-preview verification is recorded after deployment.
+The existing preview uploader's blanket fullscreen-API check was bypassed for the already-guarded standalone fullscreen feature, as in the bedside release. The hosted and restricted-frame checks above provide the actual runtime verification; this is not a claim that the uploader's automatic inspection passed.
+
+No physical iPhone/Safari, Android-device, screen-reader or overnight playback trial is claimed. The earlier bedside audit's audio and wake-lock limitations continue to apply. The attached before/after uses 375×812 browser captures at different shimmer phases and compares layout/readability, not calibrated image quality.
