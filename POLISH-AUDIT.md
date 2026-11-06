@@ -89,7 +89,7 @@ Manual browser inspection separately checked time hierarchy, touch sizing, visib
 - Wake lock depends on browser policy, battery conditions and page visibility. Native iOS audio looping is not claimed gapless.
 - Higher-quality phone footage uses more data and may consume more decoding energy. No measured battery-life claim is made.
 - Rain has been conservatively remastered and structurally tested; subjective listening quality is for the user's review in the preview.
-- Public GitHub Pages release remains separate from the tested private preview. Implementation is committed on the local `polish/bedside-refinement` branch, not pushed.
+- The user approved publishing these refinements to `main` and the public GitHub Pages site on November 5, 2026 (America/New_York). The tested implementation was prepared on `polish/bedside-refinement`; release verification follows the deployment workflow.
 
 ### Screenshot provenance
 
