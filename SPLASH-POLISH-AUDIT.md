@@ -26,7 +26,7 @@ Scope: polish the existing opening scene chooser, not replace it. Preserve the f
 
 ## Verification
 
-Implementation completed in the `polish/opening-splash` branch as version 1.2.1. The prior live bedside release is not changed until this separate release is approved. Screenshots are Chromium browser captures, not physical-phone evidence.
+Implementation completed in the `polish/opening-splash` branch as version 1.2.1. The user approved publishing this separate release to `main` and GitHub Pages on November 6, 2026 (America/New_York). Screenshots are Chromium browser captures, not physical-phone evidence.
 
 ### What changed
 
