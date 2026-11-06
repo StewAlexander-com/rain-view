@@ -71,10 +71,14 @@ Integrated loudness spread narrows from 6.32 LU to 0.30 LU. Final reconstructed 
 | Fullscreen and diagnostics | Desktop fullscreen entered/exited; triple-click diagnostics opened and cleared on scene exit. |
 | JavaScript | Syntax checks and git whitespace checks passed; no page errors in the normal desktop and emulated-touch flows. |
 | Startup requests | Fresh landing page made zero MP3 requests. |
+| Hosted preview | A fresh Chromium context loaded the deployed proxy, played video and rain, resized/dimmed the clock, paused/resumed rain, played Guitar and returned to the chooser. No page errors. |
+| Opaque iframe | A separate `sandbox="allow-scripts"` harness loaded the hosted app without same-origin privileges. Video and rain played after a click, clock resize worked, and the forbidden fullscreen button was hidden. No page errors. |
 
 ### Impeccable engine versus manual review
 
 The pinned Impeccable context and source detector ran successfully. The detector returned six warning records: four gradient-text records, one wide-tracking record and one Inter-font record. These are not six verified functional defects: gradient/brass treatment and existing Inter body text are incumbent identity, explicitly preserved for this refinement; the short existing subtitle retains its established spacing. They are documented exceptions, not a claim of a clean detector scan.
+
+The preview uploader initially rejected the existing optional fullscreen API by static inspection. Standalone fullscreen was preserved, permission-policy detection was added, and deployment validation was bypassed only for that known restriction. Both hosted content and a restricted opaque iframe were then exercised manually through Playwright; fullscreen was correctly hidden in the restricted host.
 
 Manual browser inspection separately checked time hierarchy, touch sizing, visible controls, phone framing, landscape fit and idle chrome. The detector does not establish WCAG conformance, perceived audio quality or uninterrupted overnight operation.
 
@@ -85,4 +89,8 @@ Manual browser inspection separately checked time hierarchy, touch sizing, visib
 - Wake lock depends on browser policy, battery conditions and page visibility. Native iOS audio looping is not claimed gapless.
 - Higher-quality phone footage uses more data and may consume more decoding energy. No measured battery-life claim is made.
 - Rain has been conservatively remastered and structurally tested; subjective listening quality is for the user's review in the preview.
-- Hosted-preview checks are appended after deployment. Public GitHub Pages release remains separate from this preview.
+- Public GitHub Pages release remains separate from the tested private preview. Implementation is committed on the local `polish/bedside-refinement` branch, not pushed.
+
+### Screenshot provenance
+
+The phone before/after compares the original and refined clock layouts at 375×812 in Chromium. They are different capture times, not synchronized video frames or a pixel-level encoding comparison. The original screenshot used the desktop source after resizing the page; the final phone screenshot is a fresh mobile load of the new mobile encode. README clock captures show New York on desktop and Autumn in portrait.
