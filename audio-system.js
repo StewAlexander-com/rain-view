@@ -1056,7 +1056,8 @@
         ethereal: 'assets/piano-ethereal.mp3',
         pastoral: 'assets/piano-pastoral.mp3',
         guitar: 'assets/piano-guitar.mp3',
-        cello: 'assets/piano-cello.mp3'
+        cello: 'assets/piano-cello.mp3',
+        zen: 'assets/piano-zen.mp3'
       }),
       { fadeInMs: 650 }
     );

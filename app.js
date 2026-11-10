@@ -12,7 +12,7 @@
     tokyo:  { title: 'Tokyo Evening',   video: IS_MOBILE ? 'assets/scene-tokyo-mobile.mp4' : 'assets/scene-tokyo.mp4',  thumb: 'assets/thumb-tokyo.jpg',  defaultRain: 'window',  defaultPiano: 'contemplative' },
     nyc:    { title: 'New York Night',   video: IS_MOBILE ? 'assets/scene-nyc-mobile.mp4' : 'assets/scene-nyc.mp4',    thumb: 'assets/thumb-nyc.jpg',    defaultRain: 'heavy',   defaultPiano: 'jazz' },
     autumn: { title: 'Autumn Forest',    video: IS_MOBILE ? 'assets/scene-autumn-mobile.mp4' : 'assets/scene-autumn.mp4', thumb: 'assets/thumb-autumn.jpg', defaultRain: 'forest',  defaultPiano: 'melancholic' },
-    garden: { title: 'Zen Garden',       video: IS_MOBILE ? 'assets/scene-garden-mobile.mp4' : 'assets/scene-garden.mp4', thumb: 'assets/thumb-garden.jpg', defaultRain: 'gentle',  defaultPiano: 'ethereal' }
+    garden: { title: 'Zen Garden',       video: IS_MOBILE ? 'assets/scene-garden-mobile.mp4' : 'assets/scene-garden.mp4', thumb: 'assets/thumb-garden.jpg', defaultRain: 'gentle',  defaultPiano: 'zen' }
   };
 
   // DOM refs
@@ -317,7 +317,7 @@
     activeVideo = vid;
     // Retain economical phone assets, now encoded from the original 720p
     // footage rather than the old 406p derivatives.
-    const videoSrc = s.video + '?v=60';
+    const videoSrc = s.video + '?v=61';
 
     // ═══ STEP 1: Activate iOS audio session in the gesture handler ═══
     // mobile.js plays a silent MP3 + creates/resumes AudioContext.
@@ -440,8 +440,8 @@
         vid.preload = 'auto';
         vid.playsInline = true;
         vid.muted = true;
-        if (!reducedMotion.matches && vid.getAttribute('src') !== s.video + '?v=60') {
-          vid.src = s.video + '?v=60';
+        if (!reducedMotion.matches && vid.getAttribute('src') !== s.video + '?v=61') {
+          vid.src = s.video + '?v=61';
           vid.load();
         }
       }
@@ -609,8 +609,8 @@
         vid.pause();
         activeVideo = vid;
       } else {
-        if (!vid.getAttribute('src')) vid.src = current.video + '?v=60';
-        startCrossfadeLoop(current.video + '?v=60');
+        if (!vid.getAttribute('src')) vid.src = current.video + '?v=61';
+        startCrossfadeLoop(current.video + '?v=61');
         safePlayVideo();
       }
     });
