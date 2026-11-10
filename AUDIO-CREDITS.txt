@@ -63,3 +63,13 @@ Leaves     rain-leaves.mp3     "Rain on Leaves" by StarryMelodiesoftheWind
 
 Roof       rain-roof.mp3       "Rain Sounds on a Tin Roof 01" by gugunxyz
                                https://pixabay.com/sound-effects/nature-rain-sounds-on-a-tin-roof-01-464648/
+
+
+Zen (Pixabay Music)
+-------------------
+File: assets/piano-zen.mp3
+Title: "Calming Zen" — AtlasAudio
+Source: https://pixabay.com/music/ambient-calming-zen-519422/
+License: Pixabay Content License (royalty-free, no attribution required).
+Processing: loudness-normalized to match the other music tracks; 1.5 s fade
+in/out at the file edges so the loop handoff is silent.
