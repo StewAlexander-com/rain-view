@@ -317,7 +317,7 @@
     activeVideo = vid;
     // Retain economical phone assets, now encoded from the original 720p
     // footage rather than the old 406p derivatives.
-    const videoSrc = s.video + '?v=61';
+    const videoSrc = s.video + '?v=62';
 
     // ═══ STEP 1: Activate iOS audio session in the gesture handler ═══
     // mobile.js plays a silent MP3 + creates/resumes AudioContext.
@@ -440,8 +440,8 @@
         vid.preload = 'auto';
         vid.playsInline = true;
         vid.muted = true;
-        if (!reducedMotion.matches && vid.getAttribute('src') !== s.video + '?v=61') {
-          vid.src = s.video + '?v=61';
+        if (!reducedMotion.matches && vid.getAttribute('src') !== s.video + '?v=62') {
+          vid.src = s.video + '?v=62';
           vid.load();
         }
       }
@@ -609,8 +609,8 @@
         vid.pause();
         activeVideo = vid;
       } else {
-        if (!vid.getAttribute('src')) vid.src = current.video + '?v=61';
-        startCrossfadeLoop(current.video + '?v=61');
+        if (!vid.getAttribute('src')) vid.src = current.video + '?v=62';
+        startCrossfadeLoop(current.video + '?v=62');
         safePlayVideo();
       }
     });
