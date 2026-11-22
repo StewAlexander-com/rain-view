@@ -12,7 +12,8 @@
     tokyo:  { title: 'Tokyo Evening',   video: IS_MOBILE ? 'assets/scene-tokyo-mobile.mp4' : 'assets/scene-tokyo.mp4',  thumb: 'assets/thumb-tokyo.jpg',  defaultRain: 'window',  defaultPiano: 'contemplative' },
     nyc:    { title: 'New York Night',   video: IS_MOBILE ? 'assets/scene-nyc-mobile.mp4' : 'assets/scene-nyc.mp4',    thumb: 'assets/thumb-nyc.jpg',    defaultRain: 'heavy',   defaultPiano: 'jazz' },
     autumn: { title: 'Autumn Forest',    video: IS_MOBILE ? 'assets/scene-autumn-mobile.mp4' : 'assets/scene-autumn.mp4', thumb: 'assets/thumb-autumn.jpg', defaultRain: 'forest',  defaultPiano: 'melancholic' },
-    garden: { title: 'Zen Garden',       video: IS_MOBILE ? 'assets/scene-garden-mobile.mp4' : 'assets/scene-garden.mp4', thumb: 'assets/thumb-garden.jpg', defaultRain: 'gentle',  defaultPiano: 'zen' }
+    garden: { title: 'Zen Garden',       video: IS_MOBILE ? 'assets/scene-garden-mobile.mp4' : 'assets/scene-garden.mp4', thumb: 'assets/thumb-garden.jpg', defaultRain: 'gentle',  defaultPiano: 'zen' },
+    winter: { title: 'Winter Cabin',     video: IS_MOBILE ? 'assets/scene-winter-mobile.mp4' : 'assets/scene-winter.mp4', thumb: 'assets/thumb-winter.jpg', defaultRain: 'wind',    defaultPiano: 'winter' }
   };
 
   // DOM refs
@@ -555,6 +556,18 @@
       const selected = p.getAttribute('data-variant') === value;
       p.classList.toggle('active', selected);
       p.setAttribute('aria-pressed', String(selected));
+      if (selected) revealPill(container, p);
+    });
+  }
+
+  /** On phones the pill row scrolls sideways; keep the selected pill in view. */
+  function revealPill(container, pill) {
+    requestAnimationFrame(function () {
+      if (container.scrollWidth <= container.clientWidth + 1) return;
+      var c = container.getBoundingClientRect(), r = pill.getBoundingClientRect();
+      if (!c.width || !r.width) return;
+      if (r.left >= c.left && r.right <= c.right) return;
+      container.scrollLeft += (r.left - c.left) - (c.width - r.width) / 2;
     });
   }
 

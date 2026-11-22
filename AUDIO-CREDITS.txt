@@ -73,3 +73,21 @@ Source: https://pixabay.com/music/ambient-calming-zen-519422/
 License: Pixabay Content License (royalty-free, no attribution required).
 Processing: loudness-normalized to match the other music tracks; 1.5 s fade
 in/out at the file edges so the loop handoff is silent.
+
+
+Winter (Pixabay Music)
+----------------------
+File: assets/piano-winter.mp3
+Title: "Winter Candlelight - Tender Piano, Strings & Sleigh Bells" (Pixabay track 421467)
+License: Pixabay Content License (royalty-free, no attribution required).
+Processing: -0.8 dB gain to match the other music tracks; 1.5 s fade in/out
+at the file edges so the loop handoff is silent.
+
+
+Wind (Winter Cabin scene)
+-------------------------
+File: assets/rain-wind.mp3
+Source: the audio track of the Winter Cabin scene video.
+Processing: 5.5 s of the original extended to a 48 s seamless bed by
+overlapping long grains at random offsets; 45 Hz high-pass; slow +/-2.5 dB
+gust swell; loudness matched to the rain tracks (-23 LUFS).

@@ -1043,7 +1043,8 @@
         forest: 'assets/rain-forest.mp3',
         thunder: 'assets/rain-thunder.mp3',
         leaves: 'assets/rain-leaves.mp3',
-        roof: 'assets/rain-roof.mp3'
+        roof: 'assets/rain-roof.mp3',
+        wind: 'assets/rain-wind.mp3'
       }),
       { fadeInMs: 850 }
     );
@@ -1057,7 +1058,8 @@
         pastoral: 'assets/piano-pastoral.mp3',
         guitar: 'assets/piano-guitar.mp3',
         cello: 'assets/piano-cello.mp3',
-        zen: 'assets/piano-zen.mp3'
+        zen: 'assets/piano-zen.mp3',
+        winter: 'assets/piano-winter.mp3'
       }),
       { fadeInMs: 650 }
     );

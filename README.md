@@ -2,7 +2,7 @@
 
 **Find stillness in the rain.**
 
-A contemplative ambient rain simulator — 4 cozy cinematic scenes with real rain audio, gentle piano, a resizable sleep clock, and looping video. Built for mobile, optimized for iOS PWA. No frameworks, no dependencies, no ads.
+A contemplative ambient rain simulator — 5 cozy cinematic scenes with real rain audio, gentle piano, a resizable sleep clock, and looping video. Built for mobile, optimized for iOS PWA. No frameworks, no dependencies, no ads.
 
 [**Live Demo →**](https://stewalexander-com.github.io/rain-view/)
 
@@ -18,6 +18,7 @@ A contemplative ambient rain simulator — 4 cozy cinematic scenes with real rai
 | **New York Night** | Manhattan apartment window, Empire State | Steam, taxis, amber bokeh through rain |
 | **Autumn Forest** | Log cabin porch, New England fall foliage | Rain in the trees, lantern glow, solitude |
 | **Zen Garden** | Japanese engawa, cherry blossoms, koi pond | Gentle rain, mist, stillness |
+| **Winter Cabin** | Lit cabin on a mountain lake, snow and Christmas lights | Wind instead of rain, piano and sleigh bells |
 
 ![Tokyo Evening — Scene Controls](screenshots/scene-tokyo.jpg)
 
@@ -75,7 +76,7 @@ Piano starts muted. Select a music variant, press its Play button or raise its v
 
 ## Features
 
-- **Polished opening screen** — original surf-blue title, ivory italic shimmer and four scene previews, with legible captions, non-overlapping phone cards and reliable keyboard focus.
+- **Polished opening screen** — original surf-blue title, ivory italic shimmer and five scene previews, with legible captions, non-overlapping phone cards and reliable keyboard focus.
 - **Lighter splash images** — responsive WebP versions of the existing images, with JPEG fallbacks for browsers without WebP support. Failed images retain readable scene names.
 - **AI-generated looping video** — each scene is an 8-second cinematic loop with rain baked into the animation
 - **7 rain + 7 music variants** — existing recordings retained; rain conservatively remastered near −23 LUFS with a 35 Hz high-pass.
