@@ -86,8 +86,8 @@ at the file edges so the loop handoff is silent.
 
 Wind (Winter Cabin scene)
 -------------------------
-File: assets/rain-wind.mp3
-Source: the audio track of the Winter Cabin scene video.
-Processing: 5.5 s of the original extended to a 48 s seamless bed by
-overlapping long grains at random offsets; 45 Hz high-pass; slow +/-2.5 dB
-gust swell; loudness matched to the rain tracks (-23 LUFS).
+File: assets/wind-mountain.mp3
+Title: "Wind Blowing" (Pixabay sound effect 457954)
+License: Pixabay Content License (royalty-free, no attribution required).
+Processing: last 3 s crossfaded into the first 3 s (equal power) so the file
+loops without a seam; played at 33% of the original level (-9.6 dB).
