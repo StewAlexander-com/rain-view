@@ -1,7 +1,7 @@
 {
   "name": "Rain View — Find Stillness in the Rain",
   "short_name": "Rain View",
-  "description": "Ambient rain simulator with cozy scenes, real rain audio, and gentle piano. 4 cinematic views: Tokyo, New York, Autumn Forest, Zen Garden.",
+  "description": "Ambient rain simulator with cozy scenes, real rain audio, and gentle piano. 5 cinematic views: Tokyo, New York, Autumn Forest, Zen Garden, Winter Cabin.",
   "start_url": ".",
   "display": "standalone",
   "orientation": "any",

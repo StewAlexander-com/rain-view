@@ -134,6 +134,7 @@ body{min-height:100dvh;width:100vw;overflow:hidden;font-family:var(--font-body);
   border:1px solid rgba(181,199,205,.16);
   transition:transform .25s var(--ease),border-color .25s;
 }
+.grid>.card:last-child:nth-child(odd){grid-column:1/-1;--card-ratio:3.62}
 .card::before{
   content:"";
   grid-area:1/1;
@@ -392,6 +393,7 @@ input[type="range"]::-moz-range-thumb{
     margin-top:1.25rem;
   }
   .card{--card-ratio:2.75;min-height:7.5rem;border-radius:12px}
+  .grid>.card:last-child:nth-child(odd){grid-column:auto;--card-ratio:2.75}
   .card-info{padding:2rem 1rem .9rem}
   .splash-content{padding:calc(1.25rem + env(safe-area-inset-top,0px)) calc(1rem + env(safe-area-inset-right,0px)) calc(1.25rem + env(safe-area-inset-bottom,0px)) calc(1rem + env(safe-area-inset-left,0px))}
   .splash-logo{width:28px;height:28px;margin-bottom:8px}
@@ -555,6 +557,7 @@ input[type="range"]::-moz-range-thumb{
   .splash-sub{font-size:23px;margin-top:4px}
   .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}
   .card{--card-ratio:3.5;min-height:7rem}
+  .grid>.card:last-child:nth-child(odd){grid-column:1/-1;--card-ratio:7.1}
   .card-name{font-size:24px}
   .card-info{padding:2rem 1rem .8rem}
   .splash-hint{margin-top:12px;padding:.25rem 1rem;font-size:12px}

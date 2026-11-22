@@ -8,7 +8,7 @@
   <title>Rain View — Ambient Rain Simulator</title>
 
   <!-- SEO -->
-  <meta name="description" content="Ambient rain simulator with 4 cozy cinematic scenes — Tokyo, New York, Autumn Forest, Zen Garden. Real rain audio, gentle piano, and looping video. Free, open source, no ads.">
+  <meta name="description" content="Ambient rain simulator with 5 cozy cinematic scenes — Tokyo, New York, Autumn Forest, Zen Garden, Winter Cabin. Real rain audio, gentle piano, and looping video. Free, open source, no ads.">
   <meta name="keywords" content="rain simulator, ambient rain, rain sounds, cozy rain, sleep sounds, focus music, rain ASMR, lo-fi rain, rainy window, rain on glass, meditation rain, study ambience">
   <meta name="author" content="Stewart Alexander">
   <meta name="robots" content="index, follow">
@@ -36,7 +36,7 @@
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://stewalexander-com.github.io/rain-view/">
   <meta property="og:title" content="Rain View — Ambient Rain Simulator">
-  <meta property="og:description" content="4 cozy rain scenes with real audio and gentle piano. Tokyo neon, Manhattan skyline, autumn forest, zen garden. Free and open source.">
+  <meta property="og:description" content="5 cozy scenes with real audio and gentle piano. Tokyo neon, Manhattan skyline, autumn forest, zen garden, winter cabin. Free and open source.">
   <meta property="og:image" content="https://stewalexander-com.github.io/rain-view/icons/og-image.jpg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
@@ -45,14 +45,14 @@
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Rain View — Ambient Rain Simulator">
-  <meta name="twitter:description" content="4 cozy rain scenes with real audio and gentle piano. Free, no ads, open source.">
+  <meta name="twitter:description" content="5 cozy scenes with real audio and gentle piano. Free, no ads, open source.">
   <meta name="twitter:image" content="https://stewalexander-com.github.io/rain-view/icons/og-image.jpg">
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500&family=Cormorant+Garamond:wght@300;400;500&family=Inter:wght@300;400;500&family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=62">
+  <link rel="stylesheet" href="style.css?v=63">
 </head>
 <body>
 
@@ -88,6 +88,10 @@
         <button type="button" class="card" data-scene="garden" aria-labelledby="name-garden" aria-describedby="desc-garden">
           <picture><source type="image/webp" srcset="assets/thumb-garden.webp"><img src="assets/thumb-garden.jpg" alt="" width="800" height="447" decoding="async"></picture>
           <div class="card-info"><span class="card-name" id="name-garden">Zen Garden</span><span class="card-desc" id="desc-garden">Cherry blossoms and rain on still water</span></div>
+        </button>
+        <button type="button" class="card" data-scene="winter" aria-labelledby="name-winter" aria-describedby="desc-winter">
+          <picture><source type="image/webp" srcset="assets/thumb-winter.webp"><img src="assets/thumb-winter.jpg" alt="" width="800" height="447" decoding="async"></picture>
+          <div class="card-info"><span class="card-name" id="name-winter">Winter Cabin</span><span class="card-desc" id="desc-winter">Christmas lights and wind across a mountain lake</span></div>
         </button>
       </div>
       <p class="splash-hint">Tap a scene to begin</p>
@@ -169,6 +173,7 @@
             <button type="button" class="pill" data-variant="thunder">Thunder</button>
             <button type="button" class="pill" data-variant="leaves">Leaves</button>
             <button type="button" class="pill" data-variant="roof">Roof</button>
+            <button type="button" class="pill" data-variant="wind">Wind</button>
           </div>
           <div class="vol-row">
             <button type="button" class="btn-playpause" id="rain-playpause" aria-label="Pause rain" title="Pause">
@@ -190,6 +195,7 @@
             <button type="button" class="pill" data-variant="guitar">Guitar</button>
             <button type="button" class="pill" data-variant="cello">Cello</button>
             <button type="button" class="pill" data-variant="zen">Zen</button>
+            <button type="button" class="pill" data-variant="winter">Winter</button>
           </div>
           <div class="vol-row">
             <button type="button" class="btn-playpause" id="piano-playpause" aria-label="Pause piano" title="Pause">
@@ -206,10 +212,10 @@
 
   <!-- Bump ?v= when changing audio-system.js / mobile.js / app.js so disk cache cannot pin old JS (which pins old MP3 URLs). -->
   <script src="wakelock.js?v=60"></script>
-  <script src="audio-system.js?v=61"></script>
+  <script src="audio-system.js?v=62"></script>
   <script src="mobile.js?v=51"></script>
-  <script src="app.js?v=63"></script>
+  <script src="app.js?v=64"></script>
   <script src="clock.js?v=60"></script>
-  <script src="update-check.js?v=62"></script>
+  <script src="update-check.js?v=63"></script>
 </body>
 </html>
