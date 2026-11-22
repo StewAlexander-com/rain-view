@@ -86,8 +86,8 @@ at the file edges so the loop handoff is silent.
 
 Wind (Winter Cabin scene)
 -------------------------
-File: assets/wind-mountain.mp3
+File: assets/wind-blowing.mp3
 Title: "Wind Blowing" (Pixabay sound effect 457954)
 License: Pixabay Content License (royalty-free, no attribution required).
 Processing: last 3 s crossfaded into the first 3 s (equal power) so the file
-loops without a seam; played at 33% of the original level (-9.6 dB).
+loops without a seam; level set to 33% of the rain tracks (-32.6 LUFS).
