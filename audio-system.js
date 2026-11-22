@@ -1044,7 +1044,7 @@
         thunder: 'assets/rain-thunder.mp3',
         leaves: 'assets/rain-leaves.mp3',
         roof: 'assets/rain-roof.mp3',
-        wind: 'assets/rain-wind.mp3'
+        wind: 'assets/wind-mountain.mp3'
       }),
       { fadeInMs: 850 }
     );
